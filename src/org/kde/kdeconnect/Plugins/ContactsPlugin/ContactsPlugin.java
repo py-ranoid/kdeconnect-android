@@ -36,9 +36,10 @@ import org.kde.kdeconnect.Plugins.Plugin;
 import org.kde.kdeconnect_tp.R;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class ContactsPlugin extends Plugin {
 
@@ -55,6 +56,13 @@ public class ContactsPlugin extends Plugin {
     public static final String PACKAGE_TYPE_CONTACTS_REQUEST_ALL_UIDS = "kdeconnect.contacts.request_all_uids";
 
     /**
+     * Used to request the names for a the contacts corresponding to a list of UIDs
+     *
+     * It shall contain the key "uids", which will have a list of uIDs (long int, as string)
+     */
+    public static final String PACKAGE_TYPE_CONTACTS_REQUEST_NAMES_BY_UIDS = "kdeconnect.contacts.request_names_by_uid";
+
+    /**
      * Send a list of pairings of contact names and phone numbers
      *
      * This package type is soon to be depreciated and deleted
@@ -64,10 +72,24 @@ public class ContactsPlugin extends Plugin {
     /**
      * Response indicating the package contains a list of contact uIDs
      *
-     * It shall contain the key "uids", which will mark a list of uIDs (long int)
+     * It shall contain the key "uids", which will mark a list of uIDs (long int, as string)
      * The returned IDs can be used in future requests for more information about the contact
      */
     public static final String PACKAGE_TYPE_CONTACTS_RESPONSE_UIDS = "kdeconnect.contacts.response_uids";
+
+    /**
+     * Response indicating the package contains a list of contact names
+     *
+     * It shall contain the key "uids", which will mark a list of uIDs (long int, as string)
+     * then, for each UID, there shall be a field with the key of that UID and the value of the name of the contact
+     *
+     * For example:
+     * ( 'uids' : ['1', '3', '15'],
+     *  '1'  : 'John Smith',
+     *  '3'  : 'Abe Lincoln',
+     *  '15' : 'Mom' )
+     */
+    public static final String PACKAGE_TYPE_CONTACTS_RESPONSE_NAMES = "kdeconnect.contacts.response_names";
 
     private int contactsPermissionExplanation = R.string.contacts_permission_explanation;
 
@@ -85,7 +107,8 @@ public class ContactsPlugin extends Plugin {
     public String[] getSupportedPackageTypes() {
         return new String[] {
                 PACKAGE_TYPE_CONTACTS_REQUEST_ALL,
-                PACKAGE_TYPE_CONTACTS_REQUEST_ALL_UIDS
+                PACKAGE_TYPE_CONTACTS_REQUEST_ALL_UIDS,
+                PACKAGE_TYPE_CONTACTS_REQUEST_NAMES_BY_UIDS
         };
     }
 
@@ -93,7 +116,8 @@ public class ContactsPlugin extends Plugin {
     public String[] getOutgoingPackageTypes() {
         return new String[] {
                 PACKAGE_TYPE_CONTACTS_RESPONSE,
-                PACKAGE_TYPE_CONTACTS_RESPONSE_UIDS
+                PACKAGE_TYPE_CONTACTS_RESPONSE_UIDS,
+                PACKAGE_TYPE_CONTACTS_RESPONSE_NAMES
         };
     }
 
@@ -141,6 +165,62 @@ public class ContactsPlugin extends Plugin {
             uIDsAsStrings.add(uID.toString());
         }
 
+        reply.set("uids", uIDsAsStrings);
+
+        device.sendPackage(reply);
+
+        return true;
+    }
+
+    protected boolean handleRequestNamesByUIDs(NetworkPackage np) {
+        if (!np.has("uids"))
+        {
+            Log.e("ContactsPlugin", "handleRequestNamesByUIDs received a malformed packet with no uids key");
+            return false;
+        }
+
+        List<String> uIDsAsStrings = np.getStringList("uids");
+
+        // Convert to Set to call getColumnsFromContactsForRawContactIDs
+        Set<Long> uIDs = new HashSet<Long>(uIDsAsStrings.size());
+        for (String uID : uIDsAsStrings)
+        {
+            uIDs.add(Long.parseLong(uID));
+        }
+
+        final String[] contactsProjection = new String[] {
+                ContactsContract.Contacts.DISPLAY_NAME_PRIMARY
+        };
+
+        Map<Long, Map<String, Object>> uIDsToNames = ContactsHelper.getColumnsFromContactsForRawContactIDs(context, uIDs, contactsProjection);
+
+        // ContactsHelper.getColumnsFromContactsForRawContactIDs(..) is allowed to reply without
+        // some of the requested uIDs if they were not in the database, so update our list
+        uIDsAsStrings = new ArrayList<>(uIDsToNames.size());
+
+        NetworkPackage reply = new NetworkPackage(PACKAGE_TYPE_CONTACTS_RESPONSE_NAMES);
+
+        // Add the names to the packet
+        for (Long uID : uIDsToNames.keySet())
+        {
+            Map<String, Object> data = uIDsToNames.get(uID);
+            String name;
+
+            if (! data.containsKey(ContactsContract.Contacts.DISPLAY_NAME_PRIMARY)) {
+                // This contact apparently does not have a name
+                Log.w("ContactsHelper", "Got a uID " + uID + " which does not have a name");
+                continue;
+            }
+
+            name = (String)data.get(ContactsContract.Contacts.DISPLAY_NAME_PRIMARY);
+
+            // Store this as a valid uID
+            uIDsAsStrings.add(uID.toString());
+            // Add the uid : name pairing to the packet
+            reply.set(uID.toString(), name);
+        }
+
+        // Add the valid uIDs to the packet
         reply.set("uids", uIDsAsStrings);
 
         device.sendPackage(reply);
@@ -284,7 +364,9 @@ public class ContactsPlugin extends Plugin {
             return true;
         } else if (np.getType().equals(PACKAGE_TYPE_CONTACTS_REQUEST_ALL_UIDS))
         {
-          return this.handleRequestAllUIDs(np);
+            return this.handleRequestAllUIDs(np);
+        } else if (np.getType().equals(PACKAGE_TYPE_CONTACTS_REQUEST_NAMES_BY_UIDS)) {
+            return this.handleRequestNamesByUIDs(np);
         } else
         {
             Log.e("ContactsPlugin", "Contacts plugin received an unexpected packet!");
