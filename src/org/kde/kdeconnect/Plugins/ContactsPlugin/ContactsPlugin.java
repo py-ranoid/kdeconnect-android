@@ -44,13 +44,30 @@ public class ContactsPlugin extends Plugin {
 
     /**
      * Used to request this device's entire contacts book
+     *
+     * This package type is soon to be depreciated and deleted
      */
     public static final String PACKAGE_TYPE_CONTACTS_REQUEST_ALL = "kdeconnect.contacts.request_all";
 
     /**
+     * Used to request the device send the unique ID of every contact
+     */
+    public static final String PACKAGE_TYPE_CONTACTS_REQUEST_ALL_UIDS = "kdeconnect.contacts.request_all_uids";
+
+    /**
      * Send a list of pairings of contact names and phone numbers
+     *
+     * This package type is soon to be depreciated and deleted
      */
     public static final String PACKAGE_TYPE_CONTACTS_RESPONSE = "kdeconnect.contacts.response";
+
+    /**
+     * Response indicating the package contains a list of contact uIDs
+     *
+     * It shall contain the key "uids", which will mark a list of uIDs (long int)
+     * The returned IDs can be used in future requests for more information about the contact
+     */
+    public static final String PACKAGE_TYPE_CONTACTS_RESPONSE_UIDS = "kdeconnect.contacts.response_uids";
 
     private int contactsPermissionExplanation = R.string.contacts_permission_explanation;
 
@@ -66,12 +83,18 @@ public class ContactsPlugin extends Plugin {
 
     @Override
     public String[] getSupportedPackageTypes() {
-        return new String[] {PACKAGE_TYPE_CONTACTS_REQUEST_ALL};
+        return new String[] {
+                PACKAGE_TYPE_CONTACTS_REQUEST_ALL,
+                PACKAGE_TYPE_CONTACTS_REQUEST_ALL_UIDS
+        };
     }
 
     @Override
     public String[] getOutgoingPackageTypes() {
-        return new String[] {PACKAGE_TYPE_CONTACTS_RESPONSE};
+        return new String[] {
+                PACKAGE_TYPE_CONTACTS_RESPONSE,
+                PACKAGE_TYPE_CONTACTS_RESPONSE_UIDS
+        };
     }
 
     @Override
@@ -95,6 +118,34 @@ public class ContactsPlugin extends Plugin {
     public String[] getRequiredPermissions() {
         return new String[]{Manifest.permission.READ_CONTACTS};
         // One day maybe we will also support WRITE_CONTACTS, but not yet
+    }
+
+    /**
+     * Return a unique identifier (long int) for all contacts in the Contacts database
+     *
+     * The identifiers returned can be used in future requests to get more information
+     * about the contact
+     *
+     * @param np The package containing the request
+     * @return true if successfully handled, false otherwise
+     */
+    protected boolean handleRequestAllUIDs(NetworkPackage np) {
+        NetworkPackage reply = new NetworkPackage(PACKAGE_TYPE_CONTACTS_RESPONSE_UIDS);
+
+        List<Long> uIDs = ContactsHelper.getAllContactRawContactIDs(context);
+
+        List<String> uIDsAsStrings = new ArrayList<String>(uIDs.size());
+
+        for (Long uID : uIDs)
+        {
+            uIDsAsStrings.add(uID.toString());
+        }
+
+        reply.set("uids", uIDsAsStrings);
+
+        device.sendPackage(reply);
+
+        return true;
     }
 
     @Override
@@ -231,6 +282,9 @@ public class ContactsPlugin extends Plugin {
             device.sendPackage(reply);
 
             return true;
+        } else if (np.getType().equals(PACKAGE_TYPE_CONTACTS_REQUEST_ALL_UIDS))
+        {
+          return this.handleRequestAllUIDs(np);
         } else
         {
             Log.e("ContactsPlugin", "Contacts plugin received an unexpected packet!");
