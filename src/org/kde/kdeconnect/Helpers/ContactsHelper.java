@@ -1,5 +1,6 @@
 /*
  * Copyright 2014 Albert Vaca Cintora <albertvaka@gmail.com>
+ * Copyright 2018 Simon Redman <simon@ergotech.com>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -36,7 +37,9 @@ import org.json.JSONArray;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -180,7 +183,7 @@ public class ContactsHelper {
      * @param contactsProjection List of column names to extract, defined in ContactsContract.Contacts
      * @return mapping of raw contact IDs to desired values, which are a mapping of column names to the data contained there
      */
-    @TargetApi(Build.VERSION_CODES.HONEYCOMB)
+    @TargetApi(Build.VERSION_CODES.HONEYCOMB) // Needed for Cursor.getType(..)
     public static Map<Long, Map<String, Object>> getColumnsFromContactsForRawContactIDs(Context context, Set<Long> IDs, String[] contactsProjection)
     {
         HashMap<Long, Map<String, Object>> toReturn = new HashMap<>();
@@ -292,6 +295,121 @@ public class ContactsHelper {
                 toReturn.put(rawContactID, requestedData);
             } while (rawContactsCursor.moveToNext());
             rawContactsCursor.close();
+        }
+
+        return toReturn;
+    }
+
+    /**
+     * Return a mapping of raw contact IDs to a map of the requested data from the Data database
+     *
+     * If for some reason there is no row associated with the raw contact ID in the database,
+     * there will not be a corresponding field in the returned map
+     *
+     * For some types of data, there may be many entries in the Data database with the same raw contact ID,
+     * so a list of the relevant data is returned
+     *
+     * @param context android.content.Context running the request
+     * @param IDs collection of raw contact IDs to look up
+     * @param dataMimetype Mimetype of the column to look up, defined in ContactsContract.CommonDataKinds.<type>.CONTENT_ITEM_TYPE
+     * @param dataProjection List of column names to extract, defined in ContactsContract.CommonDataKinds.<type>
+     * @return mapping of raw contact IDs to desired values, which are a mapping of column names to the data contained there
+     */
+    @TargetApi(Build.VERSION_CODES.HONEYCOMB) // Needed for Cursor.getType(..)
+    public static Map<Long, List<Map<String, Object>>> getColumnsFromDataForRawContactIDs(Context context, Set<Long> IDs, String dataMimetype, String[] dataProjection)
+    {
+        HashMap<Long, List<Map<String, Object>>> toReturn = new HashMap<>();
+
+        // Define a filter for the type of data we were asked to get
+        final String dataSelection = ContactsContract.Data.MIMETYPE + " == ?";
+        final String[] dataSelectionArgs = {dataMimetype};
+
+        Uri dataUri = ContactsContract.Data.CONTENT_URI;
+
+        // Regardless of what the user requested, we need the RAW_CONTACT_ID field
+        // This will not be returned to the user if it wasn't asked for
+        Set<String> actualDataProjectionSet = new HashSet<String>();
+        actualDataProjectionSet.addAll(Arrays.asList(dataProjection));
+        actualDataProjectionSet.add(ContactsContract.Data.RAW_CONTACT_ID);
+
+        String[] actualDataProjection = new String[0];
+        actualDataProjection = actualDataProjectionSet.toArray(actualDataProjection);
+
+        Cursor dataCursor = context.getContentResolver().query(
+                dataUri,
+                actualDataProjection,
+                dataSelection,
+                dataSelectionArgs,
+                null);
+
+        if (dataCursor != null && dataCursor.moveToFirst())
+        {
+            do {
+                Long rawContactID;
+
+                Map<String, Object> requestedData = new HashMap<>();
+
+                int rawContactIDIndex = dataCursor.getColumnIndex(ContactsContract.Data.RAW_CONTACT_ID);
+                if (rawContactIDIndex != -1) {
+                    rawContactID = dataCursor.getLong(rawContactIDIndex);
+                } else {
+                    // This  didn't have a RAW_CONTACT_ID? Something is very wrong.
+                    // TODO: Investigate why this would happen
+                    Log.e("ContactsHelper", "Got a data contact which does not have a RAW_CONTACT_ID");
+                    continue;
+                }
+
+                // Filter only for the rawContactIDs we were asked to look up
+                if (! IDs.contains(rawContactID))
+                {
+                    // This should be achievable (and faster) by providing a selection
+                    // and selectionArgs when fetching dataCursor, but I can't
+                    // figure that out
+                    continue;
+                }
+                // For each column, collect the data from that column
+                for (String column : dataProjection) {
+                    int index = dataCursor.getColumnIndex(column);
+                    // Since we might be getting various kinds of data, Object is the best we can do
+                    Object data;
+                    int type;
+                    if (index == -1) {
+                        // This raw contact didn't have an ID? Something is very wrong.
+                        // TODO: Investigate why this would happen
+                        Log.e("ContactsHelper", "Got a raw contact which does not have an _ID");
+                        continue;
+                    }
+
+                    type = dataCursor.getType(index);
+                    switch (type) {
+                        case Cursor.FIELD_TYPE_INTEGER:
+                            data = dataCursor.getInt(index);
+                            break;
+                        case Cursor.FIELD_TYPE_FLOAT:
+                            data = dataCursor.getFloat(index);
+                            break;
+                        case Cursor.FIELD_TYPE_STRING:
+                            data = dataCursor.getString(index);
+                            break;
+                        case Cursor.FIELD_TYPE_BLOB:
+                            data = dataCursor.getBlob(index);
+                            break;
+                        default:
+                            Log.w("ContactsHelper", "Got an undefined type of column " + column +  " -- Skipping");
+                            continue;
+                    }
+
+                    requestedData.put(column, data);
+                }
+
+                // If we have not already stored some data for this contact, make a new list
+                if (!toReturn.containsKey(rawContactID))
+                {
+                    toReturn.put(rawContactID, new ArrayList<Map<String, Object>>());
+                }
+                toReturn.get(rawContactID).add(requestedData);
+            } while (dataCursor.moveToNext());
+            dataCursor.close();
         }
 
         return toReturn;
