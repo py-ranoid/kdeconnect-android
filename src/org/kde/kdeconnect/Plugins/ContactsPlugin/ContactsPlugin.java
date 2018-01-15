@@ -49,13 +49,6 @@ import java.util.Set;
 public class ContactsPlugin extends Plugin {
 
     /**
-     * Used to request this device's entire contacts book
-     *
-     * This package type is soon to be depreciated and deleted
-     */
-    public static final String PACKAGE_TYPE_CONTACTS_REQUEST_ALL = "kdeconnect.contacts.request_all";
-
-    /**
      * Used to request the device send the unique ID of every contact
      */
     public static final String PACKAGE_TYPE_CONTACTS_REQUEST_ALL_UIDS = "kdeconnect.contacts.request_all_uids";
@@ -80,13 +73,6 @@ public class ContactsPlugin extends Plugin {
      * It shall contain the key "uids", which will have a list of uIDs (long int, as string)
      */
     public static final String PACKAGE_TYPE_CONTACTS_REQUEST_EMAILS_BY_UIDS = "kdeconnect.contacts.request_emails_by_uid";
-
-    /**
-     * Send a list of pairings of contact names and phone numbers
-     *
-     * This package type is soon to be depreciated and deleted
-     */
-    public static final String PACKAGE_TYPE_CONTACTS_RESPONSE = "kdeconnect.contacts.response";
 
     /**
      * Response indicating the package contains a list of contact uIDs
@@ -144,7 +130,6 @@ public class ContactsPlugin extends Plugin {
     @Override
     public String[] getSupportedPackageTypes() {
         return new String[] {
-                PACKAGE_TYPE_CONTACTS_REQUEST_ALL,
                 PACKAGE_TYPE_CONTACTS_REQUEST_ALL_UIDS,
                 PACKAGE_TYPE_CONTACTS_REQUEST_NAMES_BY_UIDS,
                 PACKAGE_TYPE_CONTACTS_REQUEST_PHONES_BY_UIDS,
@@ -155,7 +140,6 @@ public class ContactsPlugin extends Plugin {
     @Override
     public String[] getOutgoingPackageTypes() {
         return new String[] {
-                PACKAGE_TYPE_CONTACTS_RESPONSE,
                 PACKAGE_TYPE_CONTACTS_RESPONSE_UIDS,
                 PACKAGE_TYPE_CONTACTS_RESPONSE_NAMES,
                 PACKAGE_TYPE_CONTACTS_RESPONSE_PHONES
@@ -367,139 +351,7 @@ public class ContactsPlugin extends Plugin {
 
     @Override
     public boolean onPackageReceived(NetworkPackage np) {
-        if (np.getType().equals(PACKAGE_TYPE_CONTACTS_REQUEST_ALL))
-        {
-            // Return the whole contacts book
-            // The reply is formatted as a series of:
-            // <int>: Name, Category, Number
-            // Where int is a unique (incrementing) integer,
-            // Name is the contact's name
-            // Category is the contact's number category, to differentiate in case there is more
-            // than one
-            // Number is the contact's number
-
-            NetworkPackage reply = new NetworkPackage(PACKAGE_TYPE_CONTACTS_RESPONSE);
-
-            int index = 0;
-
-            Uri contactsUri = ContactsContract.Contacts.CONTENT_URI;
-            Cursor contactsCursor = null;
-            try {
-                contactsCursor = context.getContentResolver().query(
-                        contactsUri,
-                        new String[] {
-                                ContactsContract.Contacts.DISPLAY_NAME
-                                //, ContactsContract.PhoneLookup.PHOTO_URI // One day...
-                                , ContactsContract.Contacts.NAME_RAW_CONTACT_ID // Used to index the Data table
-                        },
-                        null, null, null);
-            } catch (Exception e) {
-                e.printStackTrace();
-                return false;
-            }
-            if (contactsCursor != null && contactsCursor.moveToFirst())
-            {
-                do {
-                    String contactName;
-                    String contactNumber;
-                    String contactNumberCategory;
-                    Long contactID;
-
-                    int nameIndex = contactsCursor.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME);
-
-                    if (nameIndex != -1) {
-                        contactName = contactsCursor.getString(nameIndex);
-                    } else {
-                        // Something went wrong with this contact
-                        // TODO: Investigate why this would happen
-                        continue;
-                    }
-
-                    int idIndex = contactsCursor.getColumnIndex(ContactsContract.Contacts.NAME_RAW_CONTACT_ID);
-                    if (idIndex != -1) {
-                        contactID = contactsCursor.getLong(idIndex);
-                    } else {
-                        // Something went wrong with this contact
-                        // TODO: Investigate why this would happen
-                        continue;
-                    }
-
-                    // For this contact, query the phone's database for its number(s)
-                    Uri dataUri = ContactsContract.Data.CONTENT_URI;
-                    Cursor dataCursor = null;
-
-                    dataCursor = context.getContentResolver().query(
-                            dataUri,
-                            new String[]{
-                                    ContactsContract.Data.MIMETYPE
-                                    // We may need to handle more than "Phone"-type contacts, but for now, only those
-                                    , ContactsContract.CommonDataKinds.Phone.NUMBER
-                                    , ContactsContract.CommonDataKinds.Phone.TYPE
-                                    // Stores the label of the type of the number
-                                    , ContactsContract.CommonDataKinds.Phone.LABEL
-                            },
-                            "RAW_CONTACT_ID == " + contactID, null, null);
-
-                    if (dataCursor != null && dataCursor.moveToFirst())
-                    {
-                        do
-                        {
-                            int mimetypeIndex = dataCursor.getColumnIndex(ContactsContract.Data.MIMETYPE);
-                            if (mimetypeIndex != -1)
-                            {
-                                // Check if this is actually a phone record (not email, etc.)
-                                String mimetype = dataCursor.getString(mimetypeIndex);
-
-                                if (!(mimetype.equals(ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE)))
-                                {
-                                    // Not a phone record
-                                    continue;
-                                }
-                            }
-
-                            int numberIndex = dataCursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER);
-
-                            if (numberIndex != -1) {
-                                contactNumber = dataCursor.getString(numberIndex);
-                            } else {
-                                // Something went wrong with this contact
-                                // TODO: Investigate why this would happen
-                                continue;
-                            }
-
-                            int labelIndex = dataCursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.LABEL);
-                            if (labelIndex != -1) {
-                                contactNumberCategory = dataCursor.getString(labelIndex);
-                            } else {
-                                // Something went wrong with this contact
-                                // TODO: Investigate why this would happen
-                                continue;
-                            }
-
-                            // TODO: Decode ContactsContract.CommonDataKinds.Phone.TYPE to get categories
-                            if (contactNumberCategory == null)
-                            {
-                                contactNumberCategory = "Unimplemented";
-                            }
-
-                            List<String> contactInfo = new ArrayList<String>();
-                            contactInfo.add(contactName);
-                            contactInfo.add(contactNumberCategory); // Category
-                            contactInfo.add(contactNumber); // Number
-                            reply.set(Integer.toString(index), new JSONArray(contactInfo));
-
-                            index ++;
-                        } while (dataCursor.moveToNext());
-                        try { dataCursor.close(); } catch (Exception e) {}
-                    }
-                } while (contactsCursor.moveToNext());
-                try { contactsCursor.close(); } catch (Exception e) {}
-            }
-
-            device.sendPackage(reply);
-
-            return true;
-        } else if (np.getType().equals(PACKAGE_TYPE_CONTACTS_REQUEST_ALL_UIDS))
+        if (np.getType().equals(PACKAGE_TYPE_CONTACTS_REQUEST_ALL_UIDS))
         {
             return this.handleRequestAllUIDs(np);
         } else if (np.getType().equals(PACKAGE_TYPE_CONTACTS_REQUEST_NAMES_BY_UIDS)) {
