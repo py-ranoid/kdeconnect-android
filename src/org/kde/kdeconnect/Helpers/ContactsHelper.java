@@ -31,15 +31,22 @@ import android.util.Base64;
 import android.util.Base64OutputStream;
 import android.util.Log;
 
+import org.json.JSONArray;
+
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class ContactsHelper {
 
 
     @TargetApi(Build.VERSION_CODES.HONEYCOMB)
+    /**
+     * Lookup the name and photoID of a contact given a phone number
+     */
     public static Map<String, String> phoneNumberLookup(Context context, String number) {
 
         //Log.e("PhoneNumberLookup", number);
@@ -110,6 +117,55 @@ public class ContactsHelper {
             try { input.close(); } catch(Exception ignored) { };
             try { output.close(); } catch(Exception ignored) { };
         }
+    }
+
+    /**
+     * Return all the NAME_RAW_CONTACT_IDS which contribute an entry to a Contact in the database
+     *
+     * If the user has, for example, joined several contacts, on the phone, the IDs returned will
+     * be representative of the joined contact
+     *
+     * See here: https://developer.android.com/reference/android/provider/ContactsContract.Contacts.html
+     * for more information about the connection between contacts and raw contacts
+     *
+     * @param context android.content.Context running the request
+     * @return List of each NAME_RAW_CONTACT_ID in the Contacts database
+     */
+    public static List<Long> getAllContactRawContactIDs(Context context)
+    {
+        ArrayList<Long> toReturn = new ArrayList<Long>();
+
+        // Define the columns we want to read from the Contacts database
+        final String[] projection = new String[] {
+            ContactsContract.Contacts.NAME_RAW_CONTACT_ID
+        };
+
+        Uri contactsUri = ContactsContract.Contacts.CONTENT_URI;
+        Cursor contactsCursor = context.getContentResolver().query(
+                contactsUri,
+                projection,
+                null, null, null);
+        if (contactsCursor != null && contactsCursor.moveToFirst())
+        {
+            do {
+                Long contactID;
+
+                int idIndex = contactsCursor.getColumnIndex(ContactsContract.Contacts.NAME_RAW_CONTACT_ID);
+                if (idIndex != -1) {
+                    contactID = contactsCursor.getLong(idIndex);
+                } else {
+                    // Something went wrong with this contact
+                    // TODO: Investigate why this would happen
+                    Log.e("ContactsHelper", "Got a contact which does not have a NAME_RAW_CONTACT_ID");
+                    continue;
+                }
+
+                toReturn.add(contactID);
+            } while (contactsCursor.moveToNext());
+            try { contactsCursor.close(); } catch (Exception e) {}
+        }
+
+        return toReturn;
     }
 }
 
