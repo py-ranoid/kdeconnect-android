@@ -50,28 +50,28 @@ public class ContactsPlugin extends Plugin {
 
     /**
      * Used to request the names for the contacts corresponding to a list of UIDs
-     *
+     * <p>
      * It shall contain the key "uids", which will have a list of uIDs (long int, as string)
      */
     public static final String PACKAGE_TYPE_CONTACTS_REQUEST_NAMES_BY_UIDS = "kdeconnect.contacts.request_names_by_uid";
 
     /**
      * Used to request the phone numbers for the contacts corresponding to a list of UIDs
-     *
+     * <p>
      * It shall contain the key "uids", which will have a list of uIDs (long int, as string)
      */
     public static final String PACKAGE_TYPE_CONTACTS_REQUEST_PHONES_BY_UIDS = "kdeconnect.contacts.request_phones_by_uid";
 
     /**
      * Used to request the email addresses for the contacts corresponding to a list of UIDs
-     *
+     * <p>
      * It shall contain the key "uids", which will have a list of uIDs (long int, as string)
      */
     public static final String PACKAGE_TYPE_CONTACTS_REQUEST_EMAILS_BY_UIDS = "kdeconnect.contacts.request_emails_by_uid";
 
     /**
      * Response indicating the package contains a list of contact uIDs
-     *
+     * <p>
      * It shall contain the key "uids", which will mark a list of uIDs (long int, as string)
      * The returned IDs can be used in future requests for more information about the contact
      */
@@ -79,53 +79,53 @@ public class ContactsPlugin extends Plugin {
 
     /**
      * Response indicating the package contains a list of contact names
-     *
+     * <p>
      * It shall contain the key "uids", which will mark a list of uIDs (long int, as string)
      * then, for each UID, there shall be a field with the key of that UID and the value of the name of the contact
-     *
+     * <p>
      * For example:
      * ( 'uids' : ['1', '3', '15'],
-     *  '1'  : 'John Smith',
-     *  '3'  : 'Abe Lincoln',
-     *  '15' : 'Mom' )
+     *     '1'  : 'John Smith',
+     *     '3'  : 'Abe Lincoln',
+     *     '15' : 'Mom' )
      */
     public static final String PACKAGE_TYPE_CONTACTS_RESPONSE_NAMES = "kdeconnect.contacts.response_names";
 
     /**
      * Response indicating the package contains a list of contact numbers
-     *
+     * <p>
      * It shall contain the key "uids", which will mark a list of uIDs (long int, as string)
      * then, for each UID, there shall be a 3-field list containing the phone number, the type, and the label
-     *
+     * <p>
      * For now, the values in types are undefined, but coincidentally match the list here:
      * https://developer.android.com/reference/android/provider/ContactsContract.CommonDataKinds.Phone.html
-     *
+     * <p>
      * The label field is defined to be the custom label if the number is a custom type, otherwise the empty string
-     *
+     * <p>
      * For example:
      * ( 'uids' : ['1', '3', '15'],
-     *  '1'  : [ [ '+221234',  '2', '' ] ]
-     *  '3'  : [ [ '+1(222)333-4444', '0', 'Big Red Button' ] ] // This number has a custom type
-     *  '15' : [ [ '6061234', '1', '' ] ] )
+     *     '1'  : [ [ '+221234',  '2', '' ] ]
+     *     '3'  : [ [ '+1(222)333-4444', '0', 'Big Red Button' ] ] // This number has a custom type
+     *     '15' : [ [ '6061234', '1', '' ] ] )
      */
     public static final String PACKAGE_TYPE_CONTACTS_RESPONSE_PHONES = "kdeconnect.contacts.response_phones";
 
     /**
      * Response indicating the package contains a list of contact email addresses
-     *
+     * <p>
      * It shall contain the key "uids", which will mark a list of uIDs (long int, as string)
      * then, for each UID, there shall be a 3-field list containing the email address, the type, and the label
-     *
+     * <p>
      * For now, the values in types are undefined, but coincidentally match the list here:
      * https://developer.android.com/reference/android/provider/ContactsContract.CommonDataKinds.Email.html
-     *
+     * <p>
      * The label field is defined to be the custom label if the number is a custom type, otherwise the empty string
-     *
+     * <p>
      * For example:
      * ( 'uids' : ['1', '3', '15'],
-     *  '1'  : [ [ 'john@example.com',  '2', '' ] ]
-     *  '3'  : [ [ 'abel@example.com', '0', 'Priority' ] ] // This email address has a custom type
-     *  '15' : [ [ 'mom@example.com', '1', '' ] ] )
+     * '1'  : [ [ 'john@example.com',  '2', '' ] ]
+     * '3'  : [ [ 'abel@example.com', '0', 'Priority' ] ] // This email address has a custom type
+     * '15' : [ [ 'mom@example.com', '1', '' ] ] )
      */
     public static final String PACKAGE_TYPE_CONTACTS_RESPONSE_EMAILS = "kdeconnect.contacts.response_emails";
 
@@ -143,7 +143,7 @@ public class ContactsPlugin extends Plugin {
 
     @Override
     public String[] getSupportedPackageTypes() {
-        return new String[] {
+        return new String[]{
                 PACKAGE_TYPE_CONTACTS_REQUEST_ALL_UIDS,
                 PACKAGE_TYPE_CONTACTS_REQUEST_NAMES_BY_UIDS,
                 PACKAGE_TYPE_CONTACTS_REQUEST_PHONES_BY_UIDS,
@@ -153,7 +153,7 @@ public class ContactsPlugin extends Plugin {
 
     @Override
     public String[] getOutgoingPackageTypes() {
-        return new String[] {
+        return new String[]{
                 PACKAGE_TYPE_CONTACTS_RESPONSE_UIDS,
                 PACKAGE_TYPE_CONTACTS_RESPONSE_NAMES,
                 PACKAGE_TYPE_CONTACTS_RESPONSE_PHONES,
@@ -162,8 +162,7 @@ public class ContactsPlugin extends Plugin {
     }
 
     @Override
-    public boolean onCreate()
-    {
+    public boolean onCreate() {
         permissionExplanation = contactsPermissionExplanation;
 
         return true;
@@ -173,8 +172,7 @@ public class ContactsPlugin extends Plugin {
     /**
      * Since this plugin could leak sensitive information, probably best to leave disabled by default
      */
-    public boolean isEnabledByDefault()
-    {
+    public boolean isEnabledByDefault() {
         return false;
     }
 
@@ -186,7 +184,7 @@ public class ContactsPlugin extends Plugin {
 
     /**
      * Return a unique identifier (long int) for all contacts in the Contacts database
-     *
+     * <p>
      * The identifiers returned can be used in future requests to get more information
      * about the contact
      *
@@ -200,8 +198,7 @@ public class ContactsPlugin extends Plugin {
 
         List<String> uIDsAsStrings = new ArrayList<String>(uIDs.size());
 
-        for (Long uID : uIDs)
-        {
+        for (Long uID : uIDs) {
             uIDsAsStrings.add(uID.toString());
         }
 
@@ -213,8 +210,7 @@ public class ContactsPlugin extends Plugin {
     }
 
     protected boolean handleRequestNamesByUIDs(NetworkPackage np) {
-        if (!np.has("uids"))
-        {
+        if (!np.has("uids")) {
             Log.e("ContactsPlugin", "handleRequestNamesByUIDs received a malformed packet with no uids key");
             return false;
         }
@@ -223,12 +219,11 @@ public class ContactsPlugin extends Plugin {
 
         // Convert to Set to call getColumnsFromContactsForRawContactIDs
         Set<Long> uIDs = new HashSet<Long>(uIDsAsStrings.size());
-        for (String uID : uIDsAsStrings)
-        {
+        for (String uID : uIDsAsStrings) {
             uIDs.add(Long.parseLong(uID));
         }
 
-        final String[] contactsProjection = new String[] {
+        final String[] contactsProjection = new String[]{
                 ContactsContract.Contacts.DISPLAY_NAME_PRIMARY
         };
 
@@ -241,18 +236,17 @@ public class ContactsPlugin extends Plugin {
         NetworkPackage reply = new NetworkPackage(PACKAGE_TYPE_CONTACTS_RESPONSE_NAMES);
 
         // Add the names to the packet
-        for (Long uID : uIDsToNames.keySet())
-        {
+        for (Long uID : uIDsToNames.keySet()) {
             Map<String, Object> data = uIDsToNames.get(uID);
             String name;
 
-            if (! data.containsKey(ContactsContract.Contacts.DISPLAY_NAME_PRIMARY)) {
+            if (!data.containsKey(ContactsContract.Contacts.DISPLAY_NAME_PRIMARY)) {
                 // This contact apparently does not have a name
                 Log.w("ContactsPlugin", "Got a uID " + uID + " which does not have a name");
                 continue;
             }
 
-            name = (String)data.get(ContactsContract.Contacts.DISPLAY_NAME_PRIMARY);
+            name = (String) data.get(ContactsContract.Contacts.DISPLAY_NAME_PRIMARY);
 
             // Store this as a valid uID
             uIDsAsStrings.add(uID.toString());
@@ -269,8 +263,7 @@ public class ContactsPlugin extends Plugin {
     }
 
     protected boolean handleRequestPhonesByUIDs(NetworkPackage np) {
-        if (!np.has("uids"))
-        {
+        if (!np.has("uids")) {
             Log.e("ContactsPlugin", "handleRequestPhonesByUIDs received a malformed packet with no uids key");
             return false;
         }
@@ -279,8 +272,7 @@ public class ContactsPlugin extends Plugin {
 
         // Convert to Set to call getColumnsFromDataForRawContactIDs
         Set<Long> uIDs = new HashSet<Long>(uIDsAsStrings.size());
-        for (String uID : uIDsAsStrings)
-        {
+        for (String uID : uIDsAsStrings) {
             uIDs.add(Long.parseLong(uID));
         }
 
@@ -303,11 +295,9 @@ public class ContactsPlugin extends Plugin {
         NetworkPackage reply = new NetworkPackage(PACKAGE_TYPE_CONTACTS_RESPONSE_PHONES);
 
         // Add the phone numbers to the packet
-        for (Long uID : uIDsToPhones.keySet())
-        {
+        for (Long uID : uIDsToPhones.keySet()) {
             List<List<String>> allPhoneNumbers = new ArrayList<>();
-            for (Map<String, Object> data : uIDsToPhones.get(uID))
-            {
+            for (Map<String, Object> data : uIDsToPhones.get(uID)) {
                 HashMap<Integer, String> numberTypesToNumbers = new HashMap<>();
                 String number;
                 Integer type;
@@ -325,25 +315,19 @@ public class ContactsPlugin extends Plugin {
                 // The Android docs say type should be an int
                 // However, my phone has that field stored as a string...
                 Object typeField = data.get(ContactsContract.CommonDataKinds.Phone.TYPE);
-                if (typeField instanceof String)
-                {
-                    type = Integer.parseInt((String)typeField);
-                }
-                else if (typeField instanceof Integer){
+                if (typeField instanceof String) {
+                    type = Integer.parseInt((String) typeField);
+                } else if (typeField instanceof Integer) {
                     type = (Integer) typeField;
-                } else
-                {
+                } else {
                     Log.w("ContactsPlugin", "Android docs are wrong -- cannot get Java type of 'type' field");
                     continue; // Continue in case something works...
                 }
 
-                if (type == ContactsContract.CommonDataKinds.Phone.TYPE_CUSTOM)
-                {
+                if (type == ContactsContract.CommonDataKinds.Phone.TYPE_CUSTOM) {
                     // If the label is defined, use it
                     label = (String) data.get(ContactsContract.CommonDataKinds.Phone.LABEL);
-                }
-                else
-                {
+                } else {
                     // Otherwise, use the empty string
                     label = "";
                 }
@@ -365,8 +349,7 @@ public class ContactsPlugin extends Plugin {
     }
 
     protected boolean handleRequestEmailsByUIDs(NetworkPackage np) {
-        if (!np.has("uids"))
-        {
+        if (!np.has("uids")) {
             Log.e("ContactsPlugin", "handleRequestEmailsByUIDs received a malformed packet with no uids key");
             return false;
         }
@@ -375,8 +358,7 @@ public class ContactsPlugin extends Plugin {
 
         // Convert to Set to call getColumnsFromDataForRawContactIDs
         Set<Long> uIDs = new HashSet<Long>(uIDsAsStrings.size());
-        for (String uID : uIDsAsStrings)
-        {
+        for (String uID : uIDsAsStrings) {
             uIDs.add(Long.parseLong(uID));
         }
 
@@ -399,11 +381,9 @@ public class ContactsPlugin extends Plugin {
         NetworkPackage reply = new NetworkPackage(PACKAGE_TYPE_CONTACTS_RESPONSE_EMAILS);
 
         // Add the email addresses to the packet
-        for (Long uID : uIDsToEmails.keySet())
-        {
+        for (Long uID : uIDsToEmails.keySet()) {
             List<List<String>> allEmailAddresses = new ArrayList<>();
-            for (Map<String, Object> data : uIDsToEmails.get(uID))
-            {
+            for (Map<String, Object> data : uIDsToEmails.get(uID)) {
                 HashMap<Integer, String> numberTypesToNumbers = new HashMap<>();
                 String email;
                 Integer type;
@@ -421,25 +401,19 @@ public class ContactsPlugin extends Plugin {
                 // The Android docs say type should be an int
                 // However, my phone has that field stored as a string...
                 Object typeField = data.get(ContactsContract.CommonDataKinds.Email.TYPE);
-                if (typeField instanceof String)
-                {
-                    type = Integer.parseInt((String)typeField);
-                }
-                else if (typeField instanceof Integer){
+                if (typeField instanceof String) {
+                    type = Integer.parseInt((String) typeField);
+                } else if (typeField instanceof Integer) {
                     type = (Integer) typeField;
-                } else
-                {
+                } else {
                     Log.w("ContactsPlugin", "Android docs are wrong -- cannot get Java type of 'type' field");
                     continue; // Continue in case something works...
                 }
 
-                if (type == ContactsContract.CommonDataKinds.Email.TYPE_CUSTOM)
-                {
+                if (type == ContactsContract.CommonDataKinds.Email.TYPE_CUSTOM) {
                     // If the label is defined, use it
                     label = (String) data.get(ContactsContract.CommonDataKinds.Email.LABEL);
-                }
-                else
-                {
+                } else {
                     // Otherwise, use the empty string
                     label = "";
                 }
@@ -462,17 +436,15 @@ public class ContactsPlugin extends Plugin {
 
     @Override
     public boolean onPackageReceived(NetworkPackage np) {
-        if (np.getType().equals(PACKAGE_TYPE_CONTACTS_REQUEST_ALL_UIDS))
-        {
+        if (np.getType().equals(PACKAGE_TYPE_CONTACTS_REQUEST_ALL_UIDS)) {
             return this.handleRequestAllUIDs(np);
         } else if (np.getType().equals(PACKAGE_TYPE_CONTACTS_REQUEST_NAMES_BY_UIDS)) {
             return this.handleRequestNamesByUIDs(np);
         } else if (np.getType().equals(PACKAGE_TYPE_CONTACTS_REQUEST_PHONES_BY_UIDS)) {
             return this.handleRequestPhonesByUIDs(np);
-        } else if (np.getType().equals(PACKAGE_TYPE_CONTACTS_REQUEST_EMAILS_BY_UIDS)){
+        } else if (np.getType().equals(PACKAGE_TYPE_CONTACTS_REQUEST_EMAILS_BY_UIDS)) {
             return this.handleRequestEmailsByUIDs(np);
-        } else
-        {
+        } else {
             Log.e("ContactsPlugin", "Contacts plugin received an unexpected packet!");
             return false;
         }

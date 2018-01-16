@@ -125,23 +125,22 @@ public class ContactsHelper {
 
     /**
      * Return all the NAME_RAW_CONTACT_IDS which contribute an entry to a Contact in the database
-     *
+     * <p>
      * If the user has, for example, joined several contacts, on the phone, the IDs returned will
      * be representative of the joined contact
-     *
+     * <p>
      * See here: https://developer.android.com/reference/android/provider/ContactsContract.Contacts.html
      * for more information about the connection between contacts and raw contacts
      *
      * @param context android.content.Context running the request
      * @return List of each NAME_RAW_CONTACT_ID in the Contacts database
      */
-    public static List<Long> getAllContactRawContactIDs(Context context)
-    {
+    public static List<Long> getAllContactRawContactIDs(Context context) {
         ArrayList<Long> toReturn = new ArrayList<Long>();
 
         // Define the columns we want to read from the Contacts database
-        final String[] projection = new String[] {
-            ContactsContract.Contacts.NAME_RAW_CONTACT_ID
+        final String[] projection = new String[]{
+                ContactsContract.Contacts.NAME_RAW_CONTACT_ID
         };
 
         Uri contactsUri = ContactsContract.Contacts.CONTENT_URI;
@@ -149,8 +148,7 @@ public class ContactsHelper {
                 contactsUri,
                 projection,
                 null, null, null);
-        if (contactsCursor != null && contactsCursor.moveToFirst())
-        {
+        if (contactsCursor != null && contactsCursor.moveToFirst()) {
             do {
                 Long contactID;
 
@@ -166,7 +164,10 @@ public class ContactsHelper {
 
                 toReturn.add(contactID);
             } while (contactsCursor.moveToNext());
-            try { contactsCursor.close(); } catch (Exception e) {}
+            try {
+                contactsCursor.close();
+            } catch (Exception e) {
+            }
         }
 
         return toReturn;
@@ -174,22 +175,21 @@ public class ContactsHelper {
 
     /**
      * Return a mapping of raw contact IDs to a map of the requested data from the Contacts database
-     *
+     * <p>
      * If for some reason there is no row associated with the raw contact ID in the database,
      * there will not be a corresponding field in the returned map
      *
-     * @param context android.content.Context running the request
-     * @param IDs collection of raw contact IDs to look up
+     * @param context            android.content.Context running the request
+     * @param IDs                collection of raw contact IDs to look up
      * @param contactsProjection List of column names to extract, defined in ContactsContract.Contacts
      * @return mapping of raw contact IDs to desired values, which are a mapping of column names to the data contained there
      */
     @TargetApi(Build.VERSION_CODES.HONEYCOMB) // Needed for Cursor.getType(..)
-    public static Map<Long, Map<String, Object>> getColumnsFromContactsForRawContactIDs(Context context, Set<Long> IDs, String[] contactsProjection)
-    {
+    public static Map<Long, Map<String, Object>> getColumnsFromContactsForRawContactIDs(Context context, Set<Long> IDs, String[] contactsProjection) {
         HashMap<Long, Map<String, Object>> toReturn = new HashMap<>();
 
         // Define the columns we want to read from the RawContacts database
-        final String[] rawContactsProjection = new String[] {
+        final String[] rawContactsProjection = new String[]{
                 ContactsContract.RawContacts._ID,
                 ContactsContract.RawContacts.CONTACT_ID
         };
@@ -204,8 +204,7 @@ public class ContactsHelper {
                 null,
                 null);
 
-        if (rawContactsCursor != null && rawContactsCursor.moveToFirst())
-        {
+        if (rawContactsCursor != null && rawContactsCursor.moveToFirst()) {
             do {
                 Long rawContactID;
                 Long contactID;
@@ -221,8 +220,7 @@ public class ContactsHelper {
                 }
 
                 // Filter only for the rawContactIDs we were asked to look up
-                if (! IDs.contains(rawContactID))
-                {
+                if (!IDs.contains(rawContactID)) {
                     // This should be achievable (and faster) by providing a selection
                     // and selectionArgs when fetching rawContactsCursor, but I can't
                     // figure that out
@@ -241,7 +239,7 @@ public class ContactsHelper {
 
                 // Filter on only the contact we are interested in
                 final String contactsSelection = ContactsContract.Contacts._ID + " == ? ";
-                final String[] contactsArgs = new String[] {contactID.toString()};
+                final String[] contactsArgs = new String[]{contactID.toString()};
 
                 Cursor contactsCursor = context.getContentResolver().query(
                         contactsUri,
@@ -252,11 +250,9 @@ public class ContactsHelper {
 
                 Map<String, Object> requestedData = new HashMap<>();
 
-                if (contactsCursor != null && contactsCursor.moveToFirst())
-                {
+                if (contactsCursor != null && contactsCursor.moveToFirst()) {
                     // For each column, collect the data from that column
-                    for (String column : contactsProjection)
-                    {
+                    for (String column : contactsProjection) {
                         int index = contactsCursor.getColumnIndex(column);
                         // Since we might be getting various kinds of data, Object is the best we can do
                         Object data;
@@ -269,7 +265,7 @@ public class ContactsHelper {
                         }
 
                         type = contactsCursor.getType(index);
-                        switch(type) {
+                        switch (type) {
                             case Cursor.FIELD_TYPE_INTEGER:
                                 data = contactsCursor.getInt(index);
                                 break;
@@ -302,22 +298,21 @@ public class ContactsHelper {
 
     /**
      * Return a mapping of raw contact IDs to a map of the requested data from the Data database
-     *
+     * <p>
      * If for some reason there is no row associated with the raw contact ID in the database,
      * there will not be a corresponding field in the returned map
-     *
+     * <p>
      * For some types of data, there may be many entries in the Data database with the same raw contact ID,
      * so a list of the relevant data is returned
      *
-     * @param context android.content.Context running the request
-     * @param IDs collection of raw contact IDs to look up
-     * @param dataMimetype Mimetype of the column to look up, defined in ContactsContract.CommonDataKinds.<type>.CONTENT_ITEM_TYPE
+     * @param context        android.content.Context running the request
+     * @param IDs            collection of raw contact IDs to look up
+     * @param dataMimetype   Mimetype of the column to look up, defined in ContactsContract.CommonDataKinds.<type>.CONTENT_ITEM_TYPE
      * @param dataProjection List of column names to extract, defined in ContactsContract.CommonDataKinds.<type>
      * @return mapping of raw contact IDs to desired values, which are a mapping of column names to the data contained there
      */
     @TargetApi(Build.VERSION_CODES.HONEYCOMB) // Needed for Cursor.getType(..)
-    public static Map<Long, List<Map<String, Object>>> getColumnsFromDataForRawContactIDs(Context context, Set<Long> IDs, String dataMimetype, String[] dataProjection)
-    {
+    public static Map<Long, List<Map<String, Object>>> getColumnsFromDataForRawContactIDs(Context context, Set<Long> IDs, String dataMimetype, String[] dataProjection) {
         HashMap<Long, List<Map<String, Object>>> toReturn = new HashMap<>();
 
         // Define a filter for the type of data we were asked to get
@@ -342,8 +337,7 @@ public class ContactsHelper {
                 dataSelectionArgs,
                 null);
 
-        if (dataCursor != null && dataCursor.moveToFirst())
-        {
+        if (dataCursor != null && dataCursor.moveToFirst()) {
             do {
                 Long rawContactID;
 
@@ -360,8 +354,7 @@ public class ContactsHelper {
                 }
 
                 // Filter only for the rawContactIDs we were asked to look up
-                if (! IDs.contains(rawContactID))
-                {
+                if (!IDs.contains(rawContactID)) {
                     // This should be achievable (and faster) by providing a selection
                     // and selectionArgs when fetching dataCursor, but I can't
                     // figure that out
@@ -395,7 +388,7 @@ public class ContactsHelper {
                             data = dataCursor.getBlob(index);
                             break;
                         default:
-                            Log.w("ContactsHelper", "Got an undefined type of column " + column +  " -- Skipping");
+                            Log.w("ContactsHelper", "Got an undefined type of column " + column + " -- Skipping");
                             continue;
                     }
 
@@ -403,8 +396,7 @@ public class ContactsHelper {
                 }
 
                 // If we have not already stored some data for this contact, make a new list
-                if (!toReturn.containsKey(rawContactID))
-                {
+                if (!toReturn.containsKey(rawContactID)) {
                     toReturn.put(rawContactID, new ArrayList<Map<String, Object>>());
                 }
                 toReturn.get(rawContactID).add(requestedData);
