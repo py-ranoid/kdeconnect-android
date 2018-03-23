@@ -26,20 +26,27 @@ import android.app.AlertDialog;
 import android.app.Notification;
 import android.app.PendingIntent;
 import android.app.RemoteInput;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.content.res.Resources;
 import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.Icon;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.service.notification.StatusBarNotification;
 import android.support.annotation.RequiresApi;
+import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
 import org.kde.kdeconnect.Helpers.AppsHelper;
-import org.kde.kdeconnect.NetworkPackage;
+import org.kde.kdeconnect.NetworkPacket;
 import org.kde.kdeconnect.Plugins.Plugin;
-import org.kde.kdeconnect.UserInterface.MaterialActivity;
+import org.kde.kdeconnect.UserInterface.MainActivity;
 import org.kde.kdeconnect.UserInterface.SettingsActivity;
 import org.kde.kdeconnect_tp.R;
 
@@ -53,11 +60,14 @@ import java.util.Map;
 @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
 public class NotificationsPlugin extends Plugin implements NotificationReceiver.NotificationListener {
 
-    private final static String PACKAGE_TYPE_NOTIFICATION = "kdeconnect.notification";
-    private final static String PACKAGE_TYPE_NOTIFICATION_REQUEST = "kdeconnect.notification.request";
-    private final static String PACKAGE_TYPE_NOTIFICATION_REPLY = "kdeconnect.notification.reply";
+    private final static String PACKET_TYPE_NOTIFICATION = "kdeconnect.notification";
+    private final static String PACKET_TYPE_NOTIFICATION_REQUEST = "kdeconnect.notification.request";
+    private final static String PACKET_TYPE_NOTIFICATION_REPLY = "kdeconnect.notification.reply";
+
+    private AppDatabase appDatabase;
 
     private Map<String, RepliableNotification> pendingIntents;
+    private boolean serviceReady;
 
     @Override
     public String getDisplayName() {
@@ -91,27 +101,27 @@ public class NotificationsPlugin extends Plugin implements NotificationReceiver.
 
     @Override
     public boolean onCreate() {
+
+        if (!hasPermission()) return false;
+
         pendingIntents = new HashMap<>();
 
-        if (hasPermission()) {
-            NotificationReceiver.RunCommand(context, new NotificationReceiver.InstanceCallback() {
-                @Override
-                public void onServiceStart(NotificationReceiver service) {
-                    try {
-                        service.addListener(NotificationsPlugin.this);
-                        StatusBarNotification[] notifications = service.getActiveNotifications();
-                        for (StatusBarNotification notification : notifications) {
-                            sendNotification(notification, true);
-                        }
-                    } catch (Exception e) {
-                        Log.e("NotificationsPlugin", "Exception");
-                        e.printStackTrace();
-                    }
+        appDatabase = new AppDatabase(context, true);
+
+        NotificationReceiver.RunCommand(context, new NotificationReceiver.InstanceCallback() {
+            @Override
+            public void onServiceStart(NotificationReceiver service) {
+
+                service.addListener(NotificationsPlugin.this);
+
+                serviceReady = service.isConnected();
+
+                if (serviceReady) {
+                    sendCurrentNotifications(service);
                 }
-            });
-        } else {
-            return false;
-        }
+            }
+        });
+
         return true;
     }
 
@@ -126,6 +136,11 @@ public class NotificationsPlugin extends Plugin implements NotificationReceiver.
         });
     }
 
+    @Override
+    public void onListenerConnected(NotificationReceiver service) {
+        serviceReady = true;
+        sendCurrentNotifications(service);
+    }
 
     @Override
     public void onNotificationRemoved(StatusBarNotification statusBarNotification) {
@@ -134,35 +149,34 @@ public class NotificationsPlugin extends Plugin implements NotificationReceiver.
             return;
         }
         String id = getNotificationKeyCompat(statusBarNotification);
-        NetworkPackage np = new NetworkPackage(PACKAGE_TYPE_NOTIFICATION);
+        NetworkPacket np = new NetworkPacket(PACKET_TYPE_NOTIFICATION);
         np.set("id", id);
         np.set("isCancel", true);
-        device.sendPackage(np);
+        device.sendPacket(np);
     }
 
     @Override
     public void onNotificationPosted(StatusBarNotification statusBarNotification) {
-        sendNotification(statusBarNotification, false);
+        sendNotification(statusBarNotification);
     }
 
-    private void sendNotification(StatusBarNotification statusBarNotification, boolean requestAnswer) {
+    private void sendNotification(StatusBarNotification statusBarNotification) {
 
         Notification notification = statusBarNotification.getNotification();
-        AppDatabase appDatabase = new AppDatabase(context);
 
         if ((notification.flags & Notification.FLAG_FOREGROUND_SERVICE) != 0
                 || (notification.flags & Notification.FLAG_ONGOING_EVENT) != 0
-                || (notification.flags & Notification.FLAG_LOCAL_ONLY) != 0) {
+                || (notification.flags & Notification.FLAG_LOCAL_ONLY) != 0
+                || (notification.flags & NotificationCompat.FLAG_GROUP_SUMMARY) != 0) //The notification that groups other notifications
+        {
             //This is not a notification we want!
             return;
         }
 
-        appDatabase.open();
         if (!appDatabase.isEnabled(statusBarNotification.getPackageName())) {
             return;
             // we dont want notification from this app
         }
-        appDatabase.close();
 
         String key = getNotificationKeyCompat(statusBarNotification);
         String packageName = statusBarNotification.getPackageName();
@@ -183,7 +197,7 @@ public class NotificationsPlugin extends Plugin implements NotificationReceiver.
             return;
         }
 
-        NetworkPackage np = new NetworkPackage(PACKAGE_TYPE_NOTIFICATION);
+        NetworkPacket np = new NetworkPacket(PACKET_TYPE_NOTIFICATION);
 
         if (packageName.equals("org.kde.kdeconnect_tp")) {
             //Make our own notifications silent :)
@@ -192,15 +206,30 @@ public class NotificationsPlugin extends Plugin implements NotificationReceiver.
         }
 
         try {
-            Bitmap appIcon = notification.largeIcon;
+            Bitmap appIcon = null;
+            Context foreignContext = context.createPackageContext(statusBarNotification.getPackageName(), 0);
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                appIcon = iconToBitmap(foreignContext, notification.getLargeIcon());
+            } else {
+                appIcon = notification.largeIcon;
+            }
+            //appIcon = drawableToBitmap(context.getResources().getDrawable(R.drawable.icon));
+            if (appIcon == null) {
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                    appIcon = iconToBitmap(foreignContext, notification.getSmallIcon());
+                } else {
+                    PackageManager pm = context.getPackageManager();
+                    Resources foreignResources = pm.getResourcesForApplication(statusBarNotification.getPackageName());
+                    Drawable foreignIcon = foreignResources.getDrawable(notification.icon);
+                    appIcon = drawableToBitmap(foreignIcon);
+                }
+            }
 
             if (appIcon != null) {
                 ByteArrayOutputStream outStream = new ByteArrayOutputStream();
-                if (appIcon.getWidth() > 128) {
-                    appIcon = Bitmap.createScaledBitmap(appIcon, 96, 96, true);
-                }
                 appIcon.compress(Bitmap.CompressFormat.PNG, 90, outStream);
                 byte[] bitmapData = outStream.toByteArray();
+
 
                 np.setPayload(bitmapData);
 
@@ -224,12 +253,33 @@ public class NotificationsPlugin extends Plugin implements NotificationReceiver.
         np.set("title", getNotificationTitle(notification));
         np.set("text", getNotificationText(notification));
         np.set("time", Long.toString(statusBarNotification.getPostTime()));
-        if (requestAnswer) {
-            np.set("requestAnswer", true);
-            np.set("silent", true);
+
+        device.sendPacket(np);
+    }
+
+    private Bitmap drawableToBitmap(Drawable drawable) {
+        if (drawable == null) return null;
+
+        Bitmap res;
+        if (drawable.getIntrinsicWidth() > 128 || drawable.getIntrinsicHeight() > 128) {
+            res = Bitmap.createBitmap(96, 96, Bitmap.Config.ARGB_8888);
+        } else if (drawable.getIntrinsicWidth() <= 64 || drawable.getIntrinsicHeight() <= 64) {
+            res = Bitmap.createBitmap(96, 96, Bitmap.Config.ARGB_8888);
+        } else {
+            res = Bitmap.createBitmap(drawable.getIntrinsicWidth(), drawable.getIntrinsicHeight(), Bitmap.Config.ARGB_8888);
         }
 
-        device.sendPackage(np);
+        Canvas canvas = new Canvas(res);
+        drawable.setBounds(0, 0, res.getWidth(), res.getHeight());
+        drawable.draw(canvas);
+        return res;
+    }
+
+    @RequiresApi(Build.VERSION_CODES.M)
+    private Bitmap iconToBitmap(Context foreignContext, Icon icon) {
+        if (icon == null) return null;
+
+        return drawableToBitmap(icon.loadDrawable(foreignContext));
     }
 
     @RequiresApi(api = Build.VERSION_CODES.KITKAT_WATCH)
@@ -289,7 +339,7 @@ public class NotificationsPlugin extends Plugin implements NotificationReceiver.
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
                 try {
                     Bundle extras = notification.extras;
-                    title = extras.getCharSequence(TITLE_KEY).toString();
+                    title = extras.getString(TITLE_KEY);
                 } catch (Exception e) {
                     Log.w("NotificationPlugin", "problem parsing notification extras for " + notification.tickerText);
                     e.printStackTrace();
@@ -372,7 +422,7 @@ public class NotificationsPlugin extends Plugin implements NotificationReceiver.
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
                 try {
                     Bundle extras = notification.extras;
-                    String extraTitle = extras.getCharSequence(TITLE_KEY).toString();
+                    String extraTitle = extras.getString(TITLE_KEY);
                     String extraText = null;
                     Object extraTextExtra = extras.get(TEXT_KEY);
                     if (extraTextExtra != null) extraText = extraTextExtra.toString();
@@ -398,44 +448,26 @@ public class NotificationsPlugin extends Plugin implements NotificationReceiver.
         return ticker;
     }
 
+    private void sendCurrentNotifications(NotificationReceiver service) {
+        StatusBarNotification[] notifications = service.getActiveNotifications();
+        for (StatusBarNotification notification : notifications) {
+            sendNotification(notification);
+        }
+    }
 
     @Override
-    public boolean onPackageReceived(final NetworkPackage np) {
+    public boolean onPacketReceived(final NetworkPacket np) {
 
         if (np.getBoolean("request")) {
 
-            NotificationReceiver.RunCommand(context, new NotificationReceiver.InstanceCallback() {
-                private void sendCurrentNotifications(NotificationReceiver service) {
-                    StatusBarNotification[] notifications = service.getActiveNotifications();
-                    for (StatusBarNotification notification : notifications) {
-                        sendNotification(notification, true);
-                    }
-                }
-
-
-                @Override
-                public void onServiceStart(final NotificationReceiver service) {
-                    try {
-                        //If service just started, this call will throw an exception because the answer is not ready yet
+            if (serviceReady) {
+                NotificationReceiver.RunCommand(context, new NotificationReceiver.InstanceCallback() {
+                    @Override
+                    public void onServiceStart(NotificationReceiver service) {
                         sendCurrentNotifications(service);
-                    } catch (Exception e) {
-                        Log.e("onPackageReceived", "Error when answering 'request': Service failed to start. Retrying in 100ms...");
-                        new Thread(new Runnable() {
-                            @Override
-                            public void run() {
-                                try {
-                                    Thread.sleep(100);
-                                    Log.e("onPackageReceived", "Error when answering 'request': Service failed to start. Retrying...");
-                                    sendCurrentNotifications(service);
-                                } catch (Exception e) {
-                                    Log.e("onPackageReceived", "Error when answering 'request': Service failed to start twice!");
-                                    e.printStackTrace();
-                                }
-                            }
-                        }).start();
                     }
-                }
-            });
+                });
+            }
 
         } else if (np.has("cancel")) {
 
@@ -469,7 +501,7 @@ public class NotificationsPlugin extends Plugin implements NotificationReceiver.
                     @Override
                     public void onClick(DialogInterface dialogInterface, int i) {
                         Intent intent = new Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS");
-                        deviceActivity.startActivityForResult(intent, MaterialActivity.RESULT_NEEDS_RELOAD);
+                        deviceActivity.startActivityForResult(intent, MainActivity.RESULT_NEEDS_RELOAD);
                     }
                 })
                 .setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
@@ -483,13 +515,13 @@ public class NotificationsPlugin extends Plugin implements NotificationReceiver.
     }
 
     @Override
-    public String[] getSupportedPackageTypes() {
-        return new String[]{PACKAGE_TYPE_NOTIFICATION_REQUEST, PACKAGE_TYPE_NOTIFICATION_REPLY};
+    public String[] getSupportedPacketTypes() {
+        return new String[]{PACKET_TYPE_NOTIFICATION_REQUEST, PACKET_TYPE_NOTIFICATION_REPLY};
     }
 
     @Override
-    public String[] getOutgoingPackageTypes() {
-        return new String[]{PACKAGE_TYPE_NOTIFICATION};
+    public String[] getOutgoingPacketTypes() {
+        return new String[]{PACKET_TYPE_NOTIFICATION};
     }
 
     //For compat with API<21, because lollipop changed the way to cancel notifications

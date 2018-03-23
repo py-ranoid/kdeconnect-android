@@ -21,6 +21,7 @@
 package org.kde.kdeconnect.UserInterface;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.content.res.Resources;
 import android.os.Bundle;
@@ -56,9 +57,8 @@ public class PairingFragment extends Fragment implements PairingDeviceItem.Callb
     private static final int RESULT_PAIRING_SUCCESFUL = Activity.RESULT_FIRST_USER;
 
     private View rootView;
-    private View listRootView;
     private SwipeRefreshLayout mSwipeRefreshLayout;
-    private MaterialActivity mActivity;
+    private MainActivity mActivity;
 
     boolean listRefreshCalledThisFrame = false;
 
@@ -73,11 +73,10 @@ public class PairingFragment extends Fragment implements PairingDeviceItem.Callb
         mActivity.getSupportActionBar().setTitle(R.string.pairing_title);
 
 
-
         setHasOptionsMenu(true);
 
         rootView = inflater.inflate(R.layout.activity_refresh_list, container, false);
-        listRootView = rootView.findViewById(R.id.listView1);
+        View listRootView = rootView.findViewById(R.id.listView1);
         mSwipeRefreshLayout = (SwipeRefreshLayout) rootView.findViewById(R.id.refresh_list_layout);
         mSwipeRefreshLayout.setOnRefreshListener(
                 new SwipeRefreshLayout.OnRefreshListener() {
@@ -96,9 +95,9 @@ public class PairingFragment extends Fragment implements PairingDeviceItem.Callb
     }
 
     @Override
-    public void onAttach(Activity activity) {
-        super.onAttach(activity);
-        mActivity = ((MaterialActivity) getActivity());
+    public void onAttach(Context context) {
+        super.onAttach(context);
+        mActivity = ((MainActivity) getActivity());
     }
 
     private void updateComputerListAction() {
@@ -113,7 +112,10 @@ public class PairingFragment extends Fragment implements PairingDeviceItem.Callb
         new Thread(new Runnable() {
             @Override
             public void run() {
-                try { Thread.sleep(1500); } catch (InterruptedException ignored) { }
+                try {
+                    Thread.sleep(1500);
+                } catch (InterruptedException ignored) {
+                }
                 mActivity.runOnUiThread(new Runnable() {
                     @Override
                     public void run() {

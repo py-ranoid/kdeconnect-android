@@ -34,7 +34,7 @@ import android.view.inputmethod.ExtractedText;
 import android.view.inputmethod.ExtractedTextRequest;
 import android.view.inputmethod.InputConnection;
 
-import org.kde.kdeconnect.NetworkPackage;
+import org.kde.kdeconnect.NetworkPacket;
 import org.kde.kdeconnect.Plugins.Plugin;
 import org.kde.kdeconnect_tp.R;
 
@@ -43,26 +43,30 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public class RemoteKeyboardPlugin extends Plugin {
 
-    public final static String PACKAGE_TYPE_MOUSEPAD_REQUEST = "kdeconnect.mousepad.request";
-    public final static String PACKAGE_TYPE_MOUSEPAD_ECHO = "kdeconnect.mousepad.echo";
-    public final static String PACKAGE_TYPE_MOUSEPAD_KEYBOARDSTATE = "kdeconnect.mousepad.keyboardstate";
+    public final static String PACKET_TYPE_MOUSEPAD_REQUEST = "kdeconnect.mousepad.request";
+    public final static String PACKET_TYPE_MOUSEPAD_ECHO = "kdeconnect.mousepad.echo";
+    public final static String PACKET_TYPE_MOUSEPAD_KEYBOARDSTATE = "kdeconnect.mousepad.keyboardstate";
 
     /**
      * Track and expose plugin instances to allow for a 'connected'-indicator in the IME:
      */
     private static ArrayList<RemoteKeyboardPlugin> instances = new ArrayList<RemoteKeyboardPlugin>();
     private static ReentrantLock instancesLock = new ReentrantLock(true);
+
     public static ArrayList<RemoteKeyboardPlugin> getInstances() {
         return instances;
     }
+
     public static ArrayList<RemoteKeyboardPlugin> acquireInstances() {
         instancesLock.lock();
         return getInstances();
     }
+
     public static ArrayList<RemoteKeyboardPlugin> releaseInstances() {
         instancesLock.unlock();
         return getInstances();
     }
+
     public static boolean isConnected() {
         return instances.size() > 0;
     }
@@ -173,13 +177,13 @@ public class RemoteKeyboardPlugin extends Plugin {
     }
 
     @Override
-    public String[] getSupportedPackageTypes() {
-        return new String[]{PACKAGE_TYPE_MOUSEPAD_REQUEST};
+    public String[] getSupportedPacketTypes() {
+        return new String[]{PACKET_TYPE_MOUSEPAD_REQUEST};
     }
 
     @Override
-    public String[] getOutgoingPackageTypes() {
-        return new String[]{PACKAGE_TYPE_MOUSEPAD_ECHO, PACKAGE_TYPE_MOUSEPAD_KEYBOARDSTATE};
+    public String[] getOutgoingPacketTypes() {
+        return new String[]{PACKET_TYPE_MOUSEPAD_ECHO, PACKET_TYPE_MOUSEPAD_KEYBOARDSTATE};
     }
 
     private boolean isValidSpecialKey(int key) {
@@ -210,7 +214,7 @@ public class RemoteKeyboardPlugin extends Plugin {
         return -1;
     }
 
-    private Pair<Integer,Integer> currentSelection(ExtractedText extractedText) {
+    private Pair<Integer, Integer> currentSelection(ExtractedText extractedText) {
         if (extractedText != null)
             return new Pair<>(extractedText.selectionStart, extractedText.selectionEnd);
         return new Pair<>(-1, -1);
@@ -235,12 +239,12 @@ public class RemoteKeyboardPlugin extends Plugin {
             int startPos = pos;
             int endPos = pos;
             if (shift) { // Shift -> select word (otherwise jump)
-                Pair<Integer,Integer> sel = currentSelection(extractedText);
+                Pair<Integer, Integer> sel = currentSelection(extractedText);
                 int cursor = currentCursorPos(extractedText);
 //                Log.d("RemoteKeyboardPlugin", "Selection (to right): " + sel.first + " / " + sel.second + " cursor: " + cursor);
                 startPos = cursor;
                 if (sel.first < cursor ||   // active selection from left to right -> grow
-                    sel.first > sel.second) // active selection from right to left -> shrink
+                        sel.first > sel.second) // active selection from right to left -> shrink
                     startPos = sel.first;
             }
             inputConn.setSelection(startPos, endPos);
@@ -255,12 +259,12 @@ public class RemoteKeyboardPlugin extends Plugin {
             int startPos = pos;
             int endPos = pos;
             if (shift) {
-                Pair<Integer,Integer> sel = currentSelection(extractedText);
+                Pair<Integer, Integer> sel = currentSelection(extractedText);
                 int cursor = currentCursorPos(extractedText);
 //                Log.d("RemoteKeyboardPlugin", "Selection (to left): " + sel.first + " / " + sel.second + " cursor: " + cursor);
                 startPos = cursor;
                 if (cursor < sel.first ||    // active selection from right to left -> grow
-                    sel.first < sel.second)  // active selection from right to left -> shrink
+                        sel.first < sel.second)  // active selection from right to left -> shrink
                     startPos = sel.first;
             }
             inputConn.setSelection(startPos, endPos);
@@ -284,9 +288,9 @@ public class RemoteKeyboardPlugin extends Plugin {
 //            Log.d("RemoteKeyboardPlugin", "Enter: " + editorInfo.imeOptions);
             if (editorInfo != null
                     && (((editorInfo.imeOptions & EditorInfo.IME_FLAG_NO_ENTER_ACTION) == 0)
-                        || ctrl)) {  // Ctrl+Return overrides IME_FLAG_NO_ENTER_ACTION (FIXME: make configurable?)
+                    || ctrl)) {  // Ctrl+Return overrides IME_FLAG_NO_ENTER_ACTION (FIXME: make configurable?)
                 // check for special DONE/GO/etc actions first:
-                int[] actions = { EditorInfo.IME_ACTION_GO, EditorInfo.IME_ACTION_NEXT,
+                int[] actions = {EditorInfo.IME_ACTION_GO, EditorInfo.IME_ACTION_NEXT,
                         EditorInfo.IME_ACTION_SEND, EditorInfo.IME_ACTION_SEARCH,
                         EditorInfo.IME_ACTION_DONE};  // note: DONE should be last or we might hide the ime instead of "go"
                 for (int i = 0; i < actions.length; i++) {
@@ -336,7 +340,7 @@ public class RemoteKeyboardPlugin extends Plugin {
         return true;
     }
 
-    private boolean handleEvent(NetworkPackage np) {
+    private boolean handleEvent(NetworkPacket np) {
         if (np.has("specialKey") && isValidSpecialKey(np.getInt("specialKey")))
             return handleSpecialKey(np.getInt("specialKey"), np.getBoolean("shift"),
                     np.getBoolean("ctrl"), np.getBoolean("alt"));
@@ -347,9 +351,9 @@ public class RemoteKeyboardPlugin extends Plugin {
     }
 
     @Override
-    public boolean onPackageReceived(NetworkPackage np) {
+    public boolean onPacketReceived(NetworkPacket np) {
 
-        if (!np.getType().equals(PACKAGE_TYPE_MOUSEPAD_REQUEST)
+        if (!np.getType().equals(PACKET_TYPE_MOUSEPAD_REQUEST)
                 || (!np.has("key") && !np.has("specialKey"))) {  // expect at least key OR specialKey
             Log.e("RemoteKeyboardPlugin", "Invalid package for remotekeyboard plugin!");
             return false;
@@ -372,7 +376,7 @@ public class RemoteKeyboardPlugin extends Plugin {
         }
 
         if (np.getBoolean("sendAck")) {
-            NetworkPackage reply = new NetworkPackage(PACKAGE_TYPE_MOUSEPAD_ECHO);
+            NetworkPacket reply = new NetworkPacket(PACKET_TYPE_MOUSEPAD_ECHO);
             reply.set("key", np.getString("key"));
             if (np.has("specialKey"))
                 reply.set("specialKey", np.getInt("specialKey"));
@@ -383,7 +387,7 @@ public class RemoteKeyboardPlugin extends Plugin {
             if (np.has("alt"))
                 reply.set("alt", np.getBoolean("alt"));
             reply.set("isAck", true);
-            device.sendPackage(reply);
+            device.sendPacket(reply);
         }
 
         return true;
@@ -391,8 +395,8 @@ public class RemoteKeyboardPlugin extends Plugin {
 
     public void notifyKeyboardState(boolean state) {
         Log.d("RemoteKeyboardPlugin", "Keyboardstate changed to " + state);
-        NetworkPackage np = new NetworkPackage(PACKAGE_TYPE_MOUSEPAD_KEYBOARDSTATE);
+        NetworkPacket np = new NetworkPacket(PACKET_TYPE_MOUSEPAD_KEYBOARDSTATE);
         np.set("state", state);
-        device.sendPackage(np);
+        device.sendPacket(np);
     }
 }

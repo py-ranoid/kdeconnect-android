@@ -37,7 +37,6 @@
   <string name="remotekeyboard_connected">Uzak klavye bağlantısı etkin</string>
   <string name="remotekeyboard_multiple_connections">Birden çok uzak klavye bağlantısı mevcut, yapılandırmak istediğiniz aygıtı seçin</string>
   <string name="open_mousepad">Girdi sil</string>
-  <string name="mousepad_info">Fare imlecini hareket ettirmek için ekran üzerinde parmaklarınızı hareket ettirin. Tek tıklama için dokunun, sağ ve orta düğmeler için iki/üç parmak kullanın. Sürüklemek için uzun basın.</string>
   <string name="mousepad_double_tap_settings_title">İki parmak dokunma eylemini ayarla</string>
   <string name="mousepad_triple_tap_settings_title">Üç parmak dokunma eylemini ayarla</string>
   <string name="mousepad_sensitivity_settings_title">Dokunmatik yüzey hassasiyetini ayarla</string>
@@ -83,8 +82,6 @@
   <string name="incoming_file_text">%1s</string>
   <string name="outgoing_file_title">Dosya şuraya gönderiliyor, %1s</string>
   <string name="outgoing_files_title">Dosyalar şuraya gönderiliyor, %1s</string>
-  <string name="outgoing_file_text">%1s</string>
-  <string name="outgoing_files_text">%2$d dosyadan %1$d dosya gönderildi</string>
   <string name="received_file_title">Şuradan dosya alındı, %1s</string>
   <string name="received_file_fail_title">Şuradan dosya alma başarısız, %1s</string>
   <string name="received_file_text">\'%1s\' açmak için dokunun</string>

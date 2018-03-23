@@ -31,7 +31,6 @@
   <string name="send_ping">Saada ping</string>
   <string name="open_mpris_controls">Multimeedia juhtimine</string>
   <string name="open_mousepad">Kaugsisestus</string>
-  <string name="mousepad_info">Hiirekursori liigutamiseks liiguta sõrme ekraanil. Koputa klõpsamiseks ja kasuta kaht või kolme sõrme parema ja keskmise nupu jaoks. Pika vajutusega saab lohistada.</string>
   <string name="mousepad_double_tap_settings_title">Kahe sõrmega koputamise toimingu määramine</string>
   <string name="mousepad_triple_tap_settings_title">Kolme sõrmega koputamise toimingu määramine</string>
   <string name="mousepad_sensitivity_settings_title">Puutepadja tundlikkuse määramine</string>
@@ -77,8 +76,6 @@
   <string name="incoming_file_text">%1s</string>
   <string name="outgoing_file_title">Faili saatmine seadmesse %1s</string>
   <string name="outgoing_files_title">Failide saatmine seadmesse %1s</string>
-  <string name="outgoing_file_text">%1s</string>
-  <string name="outgoing_files_text">Saadetud %1$d / %2$d faili</string>
   <string name="received_file_title">Faili saamine seadmest %1s</string>
   <string name="received_file_fail_title">Faili saamine seadmest %1s nurjus</string>
   <string name="received_file_text">Koputa \"%1s\" avamiseks</string>

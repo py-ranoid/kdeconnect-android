@@ -37,7 +37,7 @@
   <string name="remotekeyboard_connected">З’єднання з віддаленою клавіатурою є активним</string>
   <string name="remotekeyboard_multiple_connections">Існує декілька з’єднань із віддаленою клавіатурою. Виберіть пристрій для налаштовування.</string>
   <string name="open_mousepad">Дистанційне введення</string>
-  <string name="mousepad_info">Проведіть по екрану пальцем, щоб пересунути вказівник миші. Дотик одним пальцем означатиме клацання, дотиком двома або трьома пальцями можна імітувати праву і середню кнопки. Для перетягування зі скиданням скористайтеся тривалим натисканням.</string>
+  <string name="mousepad_info">Проведіть по екрану пальцем, щоб пересунути вказівник миші. Дотик одним пальцем означатиме клацання, дотиком двома або трьома пальцями можна імітувати праву і середню кнопки. Гортання відбувається за допомогою двох пальців. Для перетягування зі скиданням скористайтеся тривалим натисканням.</string>
   <string name="mousepad_double_tap_settings_title">Встановлення дії для торкання двома пальцями</string>
   <string name="mousepad_triple_tap_settings_title">Встановлення дії для торкання трьома пальцями</string>
   <string name="mousepad_sensitivity_settings_title">Встановити чутливість сенсорної панелі</string>
@@ -83,8 +83,12 @@
   <string name="incoming_file_text">%1s</string>
   <string name="outgoing_file_title">Надсилаємо файл до %1s</string>
   <string name="outgoing_files_title">Надсилаємо файли на %1s</string>
-  <string name="outgoing_file_text">%1s</string>
-  <string name="outgoing_files_text">Надіслано %1$d з %2$d файлів</string>
+  <plurals name="outgoing_files_text">
+    <item quantity="one">Надіслано %1$d з %2$d файла</item>
+    <item quantity="few">Надіслано %1$d з %2$d файлів</item>
+    <item quantity="many">Надіслано %1$d з %2$d файлів</item>
+    <item quantity="other">Надіслано %1$d файл</item>
+  </plurals>
   <string name="received_file_title">Отримано файл з %1s</string>
   <string name="received_file_fail_title">Не вдалося отримати файл з %1s</string>
   <string name="received_file_text">Натисніть, щоб відкрити «%1s»</string>
@@ -106,6 +110,7 @@
   <string name="remote_control">Дистанційне керування</string>
   <string name="settings">Параметри з’єднання з KDE</string>
   <string name="mpris_play">Пуск</string>
+  <string name="mpris_pause">Пауза</string>
   <string name="mpris_previous">Назад</string>
   <string name="mpris_rew">Повний назад</string>
   <string name="mpris_ff">Повний вперед</string>
@@ -121,6 +126,8 @@
     <item>1 хвилина</item>
     <item>2 хвилини</item>
   </string-array>
+  <string name="mpris_notification_settings_title">Показувати сповіщення щодо керування відтворенням</string>
+  <string name="mpris_notification_settings_summary">Уможливлює керування відтворенням мультимедійних даних без відкриття KDE Connect.</string>
   <string name="share_to">Спільно використовувати з…</string>
   <string name="protocol_version_older">На цьому пристрої використовується стара версія протоколу</string>
   <string name="protocol_version_newer">На цьому пристрої використовується новіша версія протоколу</string>
@@ -183,4 +190,16 @@
   <string name="telepathy_permission_explanation">Щоб читати і писати SMS з вашого робочого комп’ютера, вам слід надати програмі доступ до SMS</string>
   <string name="telephony_permission_explanation">"Щоб переглядати дзвінки і SMS з робочого комп’ютера, вам слід надати програмі доступ до дзвінків і  SMS"</string>
   <string name="telephony_optional_permission_explanation">Щоб бачити ім’я контакту замість номеру телефону, вам слід надати програмі доступ до записів контактів на телефоні</string>
+  <string name="select_ringtone">Виберіть мелодію дзвінка</string>
+  <string name="telephony_pref_blocked_title">Заблоковані номери</string>
+  <string name="telephony_pref_blocked_dialog_desc">Не показувати виклики та SMS з цих номерів. Будь ласка, вказуйте кожен із номерів у окремому рядку.</string>
+  <string name="mpris_coverart_description">Зображення обкладинки відтворюваних даних</string>
+  <string name="device_icon_description">Піктограма пристрою</string>
+  <string name="settings_icon_description">Піктограма параметрів</string>
+  <string name="add_command">Додати команду</string>
+  <string name="addcommand_name">Назва</string>
+  <string name="addcommand_command">Команда</string>
+  <string name="command_confirm_needed">Вам доведеться підтвердити команду на комп\'ютері</string>
+  <string name="addcommand_explanation">Жодних команд не зареєстровано</string>
+  <string name="addcommand_explanation2">Ви можете додавати нові команди за допомогою Системних параметрів KDE Connect</string>
 </resources>

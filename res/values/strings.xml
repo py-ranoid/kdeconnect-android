@@ -41,7 +41,7 @@
     <string name="remotekeyboard_connected" translatable="true">Remote keyboard connection is active</string>
     <string name="remotekeyboard_multiple_connections" translatable="true">There is more than one remote keyboard connection, select the device to configure</string>
     <string name="open_mousepad">Remote input</string>
-    <string name="mousepad_info">Move a finger on the screen to move the mouse cursor. Tap for a click, and use two/three fingers for right and middle buttons. Use a long press to drag\'n drop.</string>
+    <string name="mousepad_info">Move a finger on the screen to move the mouse cursor. Tap for a click, and use two/three fingers for right and middle buttons. Use 2 fingers to scroll. Use a long press to drag\'n drop.</string>
     <string name="mousepad_double_tap_settings_title">Set two finger tap action</string>
     <string name="mousepad_triple_tap_settings_title">Set three finger tap action</string>
     <string name="mousepad_sensitivity_settings_title">Set touchpad sensitivity</string>
@@ -106,8 +106,10 @@
     <string name="incoming_file_text">%1s</string>
     <string name="outgoing_file_title">Sending file to %1s</string>
     <string name="outgoing_files_title">Sending files to %1s</string>
-    <string name="outgoing_file_text">%1s</string>
-    <string name="outgoing_files_text">Sent %1$d out of %2$d files</string>
+    <plurals name="outgoing_files_text">
+        <item quantity="one">Sent %1$d file</item>
+        <item quantity="other">Sent %1$d out of %2$d files</item>
+    </plurals>
     <string name="received_file_title">Received file from %1s</string>
     <string name="received_file_fail_title">Failed receiving file from %1s</string>
     <string name="received_file_text">Tap to open \'%1s\'</string>
@@ -129,6 +131,7 @@
     <string name="remote_control">Remote control</string>
     <string name="settings">KDE Connect Settings</string>
     <string name="mpris_play">Play</string>
+    <string name="mpris_pause">Pause</string>
     <string name="mpris_previous">Previous</string>
     <string name="mpris_rew">Rewind</string>
     <string name="mpris_ff">Fast-forward</string>
@@ -153,6 +156,9 @@
         <item>60000000</item>
         <item>120000000</item>
     </string-array>
+    <string name="mpris_notification_settings_title">Show media control notification</string>
+    <string name="mpris_notification_settings_summary">Allows controlling your media players without opening KDE Connect.</string>
+    <string name="mpris_notification_key" translatable="false">mpris_notification_enabled</string>
     <string name="share_to">Share To...</string>
     <string name="protocol_version_older">This device uses an old protocol version</string>
     <string name="protocol_version_newer">This device uses a newer protocol version</string>
@@ -219,5 +225,18 @@
     <string name="telephony_permission_explanation">To see phone calls and SMS from the desktop you need to give permission to phone calls and SMS</string>
     <string name="telephony_optional_permission_explanation">To see a contact name instead of a phone number you need to give access to the phone\'s contacts</string>
     <string name="contacts_permission_explanation">To see a contact name instead of a phone number you need to give access to the phone\'s contacts</string>
+    <string name="select_ringtone">Select a ringtone</string>
+    <string name="telephony_pref_blocked_title">Blocked numbers</string>
+    <string name="telephony_pref_blocked_dialog_desc">Don\'t show calls and SMS from these numbers. Please specify one number per line</string>
+    <string name="mpris_coverart_description">Cover art of current media</string>
+    <string name="device_icon_description">Device icon</string>
+    <string name="settings_icon_description">Settings icon</string>
+
+    <string name="add_command">Add a command</string>
+    <string name="addcommand_name">Name</string>
+    <string name="addcommand_command">Command</string>
+    <string name="command_confirm_needed">You will need to confirm the command on the desktop</string>
+    <string name="addcommand_explanation">There are no commands registered</string>
+    <string name="addcommand_explanation2">You can add new commands in the KDE Connect System Settings</string>
 
 </resources>

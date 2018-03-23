@@ -21,11 +21,14 @@
 package org.kde.kdeconnect.Plugins.MprisPlugin;
 
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
+import android.support.v4.graphics.drawable.DrawableCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -33,6 +36,7 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -41,7 +45,7 @@ import org.kde.kdeconnect.Backends.BaseLink;
 import org.kde.kdeconnect.Backends.BaseLinkProvider;
 import org.kde.kdeconnect.BackgroundService;
 import org.kde.kdeconnect.Device;
-import org.kde.kdeconnect.NetworkPackage;
+import org.kde.kdeconnect.NetworkPacket;
 import org.kde.kdeconnect_tp.R;
 
 import java.util.List;
@@ -54,7 +58,7 @@ public class MprisActivity extends AppCompatActivity {
     private MprisPlugin.MprisPlayer targetPlayer = null;
 
     private static String milisToProgress(long milis) {
-        int length = (int)(milis / 1000); //From milis to seconds
+        int length = (int) (milis / 1000); //From milis to seconds
         StringBuilder text = new StringBuilder();
         int minutes = length / 60;
         if (minutes > 60) {
@@ -65,10 +69,12 @@ public class MprisActivity extends AppCompatActivity {
         }
         text.append(minutes).append(':');
         int seconds = (length % 60);
-        if(seconds < 10) text.append('0'); // needed to show length properly (eg 4:05 instead of 4:5)
+        if (seconds < 10)
+            text.append('0'); // needed to show length properly (eg 4:05 instead of 4:5)
         text.append(seconds);
         return text.toString();
     }
+
     protected void connectToPlugin(final String targetPlayerName) {
 
         BackgroundService.RunCommand(this, new BackgroundService.InstanceCallback() {
@@ -141,6 +147,11 @@ public class MprisActivity extends AppCompatActivity {
                                     }
                                 });
 
+                                if (targetPlayer == null) {
+                                    //If no player is selected, try to select a playing player
+                                    targetPlayer = mpris.getPlayingPlayer();
+                                }
+                                //Try to select the specified player
                                 if (targetPlayer != null) {
                                     int targetIndex = adapter.getPosition(targetPlayer.getPlayer());
                                     if (targetIndex >= 0) {
@@ -148,6 +159,11 @@ public class MprisActivity extends AppCompatActivity {
                                     } else {
                                         targetPlayer = null;
                                     }
+                                }
+                                //If no player selected, select the first one (if any)
+                                if (targetPlayer == null && !playerList.isEmpty()) {
+                                    targetPlayer = mpris.getPlayerStatus(playerList.get(0));
+                                    spinner.setSelection(0);
                                 }
                                 updatePlayerStatus(mpris);
                             }
@@ -162,7 +178,7 @@ public class MprisActivity extends AppCompatActivity {
 
     private final BaseLinkProvider.ConnectionReceiver connectionReceiver = new BaseLinkProvider.ConnectionReceiver() {
         @Override
-        public void onConnectionReceived(NetworkPackage identityPackage, BaseLink link) {
+        public void onConnectionReceived(NetworkPacket identityPacket, BaseLink link) {
             connectToPlugin(null);
         }
 
@@ -196,11 +212,20 @@ public class MprisActivity extends AppCompatActivity {
             nowPlaying.setText(song);
         }
 
+        Bitmap albumArt = playerStatus.getAlbumArt();
+        if (albumArt == null) {
+            Drawable placeholder_art = DrawableCompat.wrap(getResources().getDrawable(R.drawable.ic_album_art_placeholder));
+            DrawableCompat.setTint(placeholder_art, getResources().getColor(R.color.primary));
+            ((ImageView) findViewById(R.id.album_art)).setImageDrawable(placeholder_art);
+        } else {
+            ((ImageView) findViewById(R.id.album_art)).setImageBitmap(albumArt);
+        }
+
         if (playerStatus.isSeekAllowed()) {
             ((TextView) findViewById(R.id.time_textview)).setText(milisToProgress(playerStatus.getLength()));
-            SeekBar positionSeek = (SeekBar)findViewById(R.id.positionSeek);
-            positionSeek.setMax((int)(playerStatus.getLength()));
-            positionSeek.setProgress((int)(playerStatus.getPosition()));
+            SeekBar positionSeek = (SeekBar) findViewById(R.id.positionSeek);
+            positionSeek.setMax((int) (playerStatus.getLength()));
+            positionSeek.setProgress((int) (playerStatus.getPosition()));
             findViewById(R.id.progress_slider).setVisibility(View.VISIBLE);
         } else {
             findViewById(R.id.progress_slider).setVisibility(View.GONE);
@@ -212,23 +237,32 @@ public class MprisActivity extends AppCompatActivity {
         boolean isPlaying = playerStatus.isPlaying();
         if (isPlaying) {
             ((ImageButton) findViewById(R.id.play_button)).setImageResource(R.drawable.ic_pause_black);
-            findViewById(R.id.play_button).setVisibility(playerStatus.isPauseAllowed() ? View.VISIBLE : View.GONE);
+            findViewById(R.id.play_button).setEnabled(playerStatus.isPauseAllowed());
         } else {
             ((ImageButton) findViewById(R.id.play_button)).setImageResource(R.drawable.ic_play_black);
-            findViewById(R.id.play_button).setVisibility(playerStatus.isPlayAllowed() ? View.VISIBLE : View.GONE);
+            findViewById(R.id.play_button).setEnabled(playerStatus.isPlayAllowed());
         }
 
         findViewById(R.id.volume_layout).setVisibility(playerStatus.isSetVolumeAllowed() ? View.VISIBLE : View.INVISIBLE);
         findViewById(R.id.rew_button).setVisibility(playerStatus.isSeekAllowed() ? View.VISIBLE : View.GONE);
         findViewById(R.id.ff_button).setVisibility(playerStatus.isSeekAllowed() ? View.VISIBLE : View.GONE);
-        findViewById(R.id.next_button).setVisibility(playerStatus.isGoNextAllowed() ? View.VISIBLE : View.GONE);
-        findViewById(R.id.prev_button).setVisibility(playerStatus.isGoPreviousAllowed() ? View.VISIBLE : View.GONE);
+
+        //Show and hide previous/next buttons simultaneously
+        if (playerStatus.isGoPreviousAllowed() || playerStatus.isGoNextAllowed()) {
+            findViewById(R.id.prev_button).setVisibility(View.VISIBLE);
+            findViewById(R.id.prev_button).setEnabled(playerStatus.isGoPreviousAllowed());
+            findViewById(R.id.next_button).setVisibility(View.VISIBLE);
+            findViewById(R.id.next_button).setEnabled(playerStatus.isGoNextAllowed());
+        } else {
+            findViewById(R.id.prev_button).setVisibility(View.GONE);
+            findViewById(R.id.next_button).setVisibility(View.GONE);
+        }
     }
 
     /**
      * Change current volume with provided step.
      *
-     * @param step  step size volume change
+     * @param step step size volume change
      */
     private void updateVolume(int step) {
         if (targetPlayer == null) {
@@ -236,11 +270,11 @@ public class MprisActivity extends AppCompatActivity {
         }
         final int currentVolume = targetPlayer.getVolume();
 
-        if(currentVolume < 100 || currentVolume > 0) {
+        if (currentVolume < 100 || currentVolume > 0) {
             int newVolume = currentVolume + step;
-            if(newVolume > 100) {
+            if (newVolume > 100) {
                 newVolume = 100;
-            } else if (newVolume <0 ) {
+            } else if (newVolume < 0) {
                 newVolume = 0;
             }
             targetPlayer.setVolume(newVolume);
@@ -276,7 +310,7 @@ public class MprisActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.mpris_control);
+        setContentView(R.layout.activity_mpris);
 
         final String targetPlayerName = getIntent().getStringExtra("player");
         getIntent().removeExtra("player");
@@ -360,7 +394,7 @@ public class MprisActivity extends AppCompatActivity {
             }
         });
 
-        ((SeekBar)findViewById(R.id.volume_seek)).setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+        ((SeekBar) findViewById(R.id.volume_seek)).setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
             }
@@ -385,7 +419,7 @@ public class MprisActivity extends AppCompatActivity {
         positionSeekUpdateRunnable = new Runnable() {
             @Override
             public void run() {
-                final SeekBar positionSeek = (SeekBar)findViewById(R.id.positionSeek);
+                final SeekBar positionSeek = (SeekBar) findViewById(R.id.positionSeek);
                 BackgroundService.RunCommand(MprisActivity.this, new BackgroundService.InstanceCallback() {
                     @Override
                     public void onServiceStart(BackgroundService service) {
@@ -401,10 +435,10 @@ public class MprisActivity extends AppCompatActivity {
         };
         positionSeekUpdateHandler.postDelayed(positionSeekUpdateRunnable, 200);
 
-        ((SeekBar)findViewById(R.id.positionSeek)).setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+        ((SeekBar) findViewById(R.id.positionSeek)).setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean byUser) {
-                ((TextView)findViewById(R.id.progress_textview)).setText(milisToProgress(progress));
+                ((TextView) findViewById(R.id.progress_textview)).setText(milisToProgress(progress));
             }
 
             @Override

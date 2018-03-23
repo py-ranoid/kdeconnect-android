@@ -31,7 +31,6 @@
   <string name="send_ping">Lähetä tiedustelupaketti</string>
   <string name="open_mpris_controls">Multimedian ohjaus</string>
   <string name="open_mousepad">Kauko-ohjaus</string>
-  <string name="mousepad_info">Liikuta hiiren osoitinta liikuttamalla sormeasi näytöllä. Napsauta napauttamalla yhdellä sormella, käytä oikeaa painiketta kahdella sormella ja keskipainiketta kolmella. Vedä ja pudota painamalla pitkään.</string>
   <string name="mousepad_double_tap_settings_title">Aseta kahden sormen napautuksen toiminto</string>
   <string name="mousepad_triple_tap_settings_title">Aseta kolmen sormen napautuksen toiminto</string>
   <string name="mousepad_sensitivity_settings_title">Aseta kosketuslevyn herkkyys</string>
@@ -76,7 +75,6 @@
   <string name="incoming_file_title">Saapuva tiedosto lähettäjältä %1s</string>
   <string name="incoming_file_text">%1s</string>
   <string name="outgoing_file_title">Lähetetään tiedostoa laitteeseen %1s</string>
-  <string name="outgoing_file_text">%1s</string>
   <string name="received_file_title">Vastaanotettiin tiedosto lähettäjältä %1s</string>
   <string name="received_file_fail_title">Ei voitu vastaanottaa tiedostoa lähettäjältä %1s</string>
   <string name="received_file_text">Avaa ”%1s” napauttamalla</string>

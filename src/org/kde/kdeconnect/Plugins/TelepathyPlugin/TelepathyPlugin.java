@@ -21,29 +21,24 @@
 package org.kde.kdeconnect.Plugins.TelepathyPlugin;
 
 import android.Manifest;
-import android.content.pm.PackageManager;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
 import android.telephony.SmsManager;
 import android.util.Log;
 
-import java.util.ArrayList;
-
-import org.kde.kdeconnect.NetworkPackage;
+import org.kde.kdeconnect.NetworkPacket;
 import org.kde.kdeconnect.Plugins.Plugin;
 import org.kde.kdeconnect.Plugins.TelephonyPlugin.TelephonyPlugin;
 import org.kde.kdeconnect_tp.R;
 
+import java.util.ArrayList;
+
+
 public class TelepathyPlugin extends Plugin {
 
-
-    public final static String PACKAGE_TYPE_SMS_REQUEST = "kdeconnect.sms.request";
-
-    private int telepathyPermissionExplanation = R.string.telepathy_permission_explanation;
+    private final static String PACKET_TYPE_SMS_REQUEST = "kdeconnect.sms.request";
 
     @Override
     public boolean onCreate() {
-        permissionExplanation = telepathyPermissionExplanation;
+        permissionExplanation = R.string.telepathy_permission_explanation;
         return true;
     }
 
@@ -58,34 +53,24 @@ public class TelepathyPlugin extends Plugin {
     }
 
     @Override
-    public void onDestroy() {
-    }
+    public boolean onPacketReceived(NetworkPacket np) {
 
-    @Override
-    public boolean onPackageReceived(NetworkPackage np) {
-
-        if (!np.getType().equals(PACKAGE_TYPE_SMS_REQUEST)) {
+        if (!np.getType().equals(PACKET_TYPE_SMS_REQUEST)) {
             return false;
         }
 
         if (np.getBoolean("sendSms")) {
             String phoneNo = np.getString("phoneNumber");
             String sms = np.getString("messageBody");
+
             try {
-                int permissionCheck = ContextCompat.checkSelfPermission(context,
-                        Manifest.permission.SEND_SMS);
+                SmsManager smsManager = SmsManager.getDefault();
+                ArrayList<String> parts = smsManager.divideMessage(sms);
 
-                if(permissionCheck == PackageManager.PERMISSION_GRANTED) {
-                    SmsManager smsManager = SmsManager.getDefault();
+                // If this message turns out to fit in a single SMS, sendMultipartTextMessage
+                // properly handles that case
+                smsManager.sendMultipartTextMessage(phoneNo, null, parts, null, null);
 
-                    ArrayList<String> parts = smsManager.divideMessage(sms);
-
-                    // If this message turns out to fit in a single SMS, sendMultpartTextMessage
-                    // properly handles that case
-                    smsManager.sendMultipartTextMessage(phoneNo, null, parts, null, null);
-                } else  if(permissionCheck == PackageManager.PERMISSION_DENIED){
-                    // TODO Request Permission SEND_SMS
-                }
                 //TODO: Notify other end
             } catch (Exception e) {
                 //TODO: Notify other end
@@ -94,111 +79,21 @@ public class TelepathyPlugin extends Plugin {
             }
         }
 
-/*
-        if (np.getBoolean("requestContacts")) {
-
-            ArrayList<String> vCards = new ArrayList<String>();
-
-            Cursor cursor = context.getContentResolver().query(
-                    Contacts.CONTENT_URI,
-                    null,
-                    Contacts.HAS_PHONE_NUMBER + " > 0 ",
-                    null,
-                    null
-            );
-
-            if (cursor != null && cursor.moveToFirst()) {
-                try {
-                    do {
-                        String lookupKey = cursor.getString(cursor.getColumnIndex(Contacts.LOOKUP_KEY));
-                        Uri uri = Uri.withAppendedPath(Contacts.CONTENT_VCARD_URI, lookupKey);
-                        AssetFileDescriptor fd = null;
-                        try {
-                            fd = context.getContentResolver()
-                                    .openAssetFileDescriptor(uri, "r");
-                            FileInputStream fis = fd.createInputStream();
-                            byte[] b = new byte[(int) fd.getDeclaredLength()];
-                            fis.read(b);
-                            String vCard = new String(b);
-                            vCards.add(vCard);
-                        } catch (FileNotFoundException e) {
-                            e.printStackTrace();
-                            Log.e("RequestContacts", e.getMessage());
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                            Log.e("RequestContacts", e.getMessage());
-                        } finally {
-                            if (fd != null) fd.close();
-                        }
-                    } while (cursor.moveToNext());
-                    Log.e("Contacts","Size: "+vCards.size());
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    Log.e("RequestContacts", e.getMessage());
-                } finally {
-                    cursor.close();
-                }
-            }
-
-            NetworkPackage answer = new NetworkPackage(NetworkPackage.PACKAGE_TYPE_TELEPHONY);
-            answer.set("contacts",vCards);
-            device.sendPackage(answer);
-
-        }
-*/
-/*
-        if (np.getBoolean("requestNumbers")) {
-
-            ArrayList<String> numbers = new ArrayList<String>();
-
-            Cursor cursor = context.getContentResolver().query(
-                    CommonDataKinds.Phone.CONTENT_URI,
-                    new String[]{
-                            CommonDataKinds.Phone.DISPLAY_NAME,
-                            CommonDataKinds.Phone.NUMBER
-                    },
-                    Contacts.HAS_PHONE_NUMBER + " > 0 ",
-                    null,
-                    null
-            );
-
-            if (cursor != null && cursor.moveToFirst()) {
-                try {
-                    do {
-                        String number = cursor.getString(cursor.getColumnIndex(CommonDataKinds.Phone.NUMBER));
-                        String name = cursor.getString(cursor.getColumnIndex(CommonDataKinds.Phone.DISPLAY_NAME));
-                        numbers.add(number);
-                    } while (cursor.moveToNext());
-                    Log.e("Numbers","Size: "+numbers.size());
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    Log.e("RequestContacts", e.getMessage());
-                } finally {
-                    cursor.close();
-                }
-            }
-
-            NetworkPackage answer = new NetworkPackage(NetworkPackage.PACKAGE_TYPE_TELEPHONY);
-            answer.set("numbers",numbers);
-            device.sendPackage(answer);
-        }
-*/
-
         return true;
     }
 
     @Override
-    public String[] getSupportedPackageTypes() {
-        return new String[]{PACKAGE_TYPE_SMS_REQUEST, TelephonyPlugin.PACKAGE_TYPE_TELEPHONY_REQUEST};
+    public String[] getSupportedPacketTypes() {
+        return new String[]{PACKET_TYPE_SMS_REQUEST, TelephonyPlugin.PACKET_TYPE_TELEPHONY_REQUEST};
     }
 
     @Override
-    public String[] getOutgoingPackageTypes() {
+    public String[] getOutgoingPacketTypes() {
         return new String[]{};
     }
 
     @Override
     public String[] getRequiredPermissions() {
-        return new String[]{Manifest.permission.SEND_SMS/*, Manifest.permission.READ_CONTACTS*/};
+        return new String[]{Manifest.permission.SEND_SMS};
     }
 }

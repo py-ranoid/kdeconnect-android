@@ -28,7 +28,7 @@ import android.support.v4.content.ContextCompat;
 
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.kde.kdeconnect.NetworkPackage;
+import org.kde.kdeconnect.NetworkPacket;
 import org.kde.kdeconnect.Plugins.Plugin;
 import org.kde.kdeconnect_tp.R;
 
@@ -37,11 +37,14 @@ import java.util.Iterator;
 
 public class RunCommandPlugin extends Plugin {
 
-    public final static String PACKAGE_TYPE_RUNCOMMAND = "kdeconnect.runcommand";
-    public final static String PACKAGE_TYPE_RUNCOMMAND_REQUEST = "kdeconnect.runcommand.request";
+    public final static String PACKET_TYPE_RUNCOMMAND = "kdeconnect.runcommand";
+    public final static String PACKET_TYPE_RUNCOMMAND_REQUEST = "kdeconnect.runcommand.request";
+    public final static String PACKET_TYPE_RUNCOMMAND_ADD = "kdeconnect.runcommand.add";
 
     private ArrayList<JSONObject> commandList = new ArrayList<>();
     private ArrayList<CommandsChangedCallback> callbacks = new ArrayList<>();
+
+    private boolean canAddCommand;
 
     public void addCommandsUpdatedCallback(CommandsChangedCallback newCallback) {
         callbacks.add(newCallback);
@@ -53,7 +56,7 @@ public class RunCommandPlugin extends Plugin {
 
     interface CommandsChangedCallback {
         void update();
-    };
+    }
 
     public ArrayList<JSONObject> getCommandList() {
         return commandList;
@@ -81,14 +84,14 @@ public class RunCommandPlugin extends Plugin {
     }
 
     @Override
-    public boolean onPackageReceived(NetworkPackage np) {
+    public boolean onPacketReceived(NetworkPacket np) {
 
         if (np.has("commandList")) {
             commandList.clear();
             try {
                 JSONObject obj = new JSONObject(np.getString("commandList"));
                 Iterator<String> keys = obj.keys();
-                while(keys.hasNext()){
+                while (keys.hasNext()) {
                     String s = keys.next();
                     JSONObject o = obj.getJSONObject(s);
                     o.put("key", s);
@@ -104,36 +107,38 @@ public class RunCommandPlugin extends Plugin {
 
             device.onPluginsChanged();
 
+            canAddCommand = np.getBoolean("canAddCommand", false);
+
             return true;
         }
         return false;
     }
 
     @Override
-    public String[] getSupportedPackageTypes() {
-        return new String[]{PACKAGE_TYPE_RUNCOMMAND};
+    public String[] getSupportedPacketTypes() {
+        return new String[]{PACKET_TYPE_RUNCOMMAND};
     }
 
     @Override
-    public String[] getOutgoingPackageTypes() {
-        return new String[]{PACKAGE_TYPE_RUNCOMMAND_REQUEST};
+    public String[] getOutgoingPacketTypes() {
+        return new String[]{PACKET_TYPE_RUNCOMMAND_REQUEST};
     }
 
     public void runCommand(String cmdKey) {
-        NetworkPackage np = new NetworkPackage(PACKAGE_TYPE_RUNCOMMAND_REQUEST);
+        NetworkPacket np = new NetworkPacket(PACKET_TYPE_RUNCOMMAND_REQUEST);
         np.set("key", cmdKey);
-        device.sendPackage(np);
+        device.sendPacket(np);
     }
 
     private void requestCommandList() {
-        NetworkPackage np = new NetworkPackage(PACKAGE_TYPE_RUNCOMMAND_REQUEST);
+        NetworkPacket np = new NetworkPacket(PACKET_TYPE_RUNCOMMAND_REQUEST);
         np.set("requestCommandList", true);
-        device.sendPackage(np);
+        device.sendPacket(np);
     }
 
     @Override
     public boolean hasMainActivity() {
-        return !commandList.isEmpty();
+        return true;
     }
 
     @Override
@@ -146,6 +151,19 @@ public class RunCommandPlugin extends Plugin {
     @Override
     public String getActionName() {
         return context.getString(R.string.pref_plugin_runcommand);
+    }
+
+    public void addCommand(String name, String command){
+
+        NetworkPacket np = new NetworkPacket(PACKET_TYPE_RUNCOMMAND_ADD);
+        np.set("name", name);
+        np.set("command", command);
+
+        device.sendPacket(np);
+    }
+
+    public boolean canAddCommand(){
+        return canAddCommand;
     }
 
 }

@@ -26,21 +26,21 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.BatteryManager;
 
-import org.kde.kdeconnect.NetworkPackage;
+import org.kde.kdeconnect.NetworkPacket;
 import org.kde.kdeconnect.Plugins.Plugin;
 import org.kde.kdeconnect_tp.R;
 
 
 public class BatteryPlugin extends Plugin {
 
-    public final static String PACKAGE_TYPE_BATTERY = "kdeconnect.battery";
-    public final static String PACKAGE_TYPE_BATTERY_REQUEST = "kdeconnect.battery.request";
+    public final static String PACKET_TYPE_BATTERY = "kdeconnect.battery";
+    public final static String PACKET_TYPE_BATTERY_REQUEST = "kdeconnect.battery.request";
 
     // keep these fields in sync with kdeconnect-kded:BatteryPlugin.h:ThresholdBatteryEvent
-    private static final int THRESHOLD_EVENT_NONE= 0;
+    private static final int THRESHOLD_EVENT_NONE = 0;
     private static final int THRESHOLD_EVENT_BATTERY_LOW = 1;
 
-    private NetworkPackage batteryInfo = new NetworkPackage(PACKAGE_TYPE_BATTERY);
+    private NetworkPacket batteryInfo = new NetworkPacket(PACKET_TYPE_BATTERY);
 
     @Override
     public String getDisplayName() {
@@ -60,25 +60,24 @@ public class BatteryPlugin extends Plugin {
             int scale = batteryIntent.getIntExtra(BatteryManager.EXTRA_SCALE, 1);
             int plugged = batteryIntent.getIntExtra(BatteryManager.EXTRA_PLUGGED, -1);
 
-            int currentCharge = (level == -1)? batteryInfo.getInt("currentCharge") : level*100 / scale;
-            boolean isCharging = (plugged == -1)? batteryInfo.getBoolean("isCharging") : (0 != plugged);
+            int currentCharge = (level == -1) ? batteryInfo.getInt("currentCharge") : level * 100 / scale;
+            boolean isCharging = (plugged == -1) ? batteryInfo.getBoolean("isCharging") : (0 != plugged);
             boolean lowBattery = Intent.ACTION_BATTERY_LOW.equals(batteryIntent.getAction());
-            int thresholdEvent = lowBattery? THRESHOLD_EVENT_BATTERY_LOW : THRESHOLD_EVENT_NONE;
+            int thresholdEvent = lowBattery ? THRESHOLD_EVENT_BATTERY_LOW : THRESHOLD_EVENT_NONE;
 
             if (isCharging == batteryInfo.getBoolean("isCharging")
-                && currentCharge == batteryInfo.getInt("currentCharge")
-                && thresholdEvent == batteryInfo.getInt("thresholdEvent")
-            ) {
+                    && currentCharge == batteryInfo.getInt("currentCharge")
+                    && thresholdEvent == batteryInfo.getInt("thresholdEvent")
+                    ) {
 
                 //Do not send again if nothing has changed
-                return;
 
             } else {
 
                 batteryInfo.set("currentCharge", currentCharge);
                 batteryInfo.set("isCharging", isCharging);
                 batteryInfo.set("thresholdEvent", thresholdEvent);
-                device.sendPackage(batteryInfo);
+                device.sendPacket(batteryInfo);
 
             }
 
@@ -101,25 +100,23 @@ public class BatteryPlugin extends Plugin {
     }
 
     @Override
-    public boolean onPackageReceived(NetworkPackage np) {
+    public boolean onPacketReceived(NetworkPacket np) {
 
         if (np.getBoolean("request")) {
-            device.sendPackage(batteryInfo);
+            device.sendPacket(batteryInfo);
         }
 
         return true;
     }
 
     @Override
-    public String[] getSupportedPackageTypes() {
-        String[] packetTypes = {PACKAGE_TYPE_BATTERY_REQUEST};
-        return packetTypes;
+    public String[] getSupportedPacketTypes() {
+        return new String[]{PACKET_TYPE_BATTERY_REQUEST};
     }
 
     @Override
-    public String[] getOutgoingPackageTypes() {
-        String[] packetTypes = {PACKAGE_TYPE_BATTERY};
-        return packetTypes;
+    public String[] getOutgoingPacketTypes() {
+        return new String[]{PACKET_TYPE_BATTERY};
     }
 
 }

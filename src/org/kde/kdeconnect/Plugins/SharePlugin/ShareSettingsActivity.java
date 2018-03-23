@@ -93,6 +93,11 @@ public class ShareSettingsActivity extends PluginSettingsActivity {
                 }
             }
         }
+        try {
+            getDefaultDestinationDirectory().mkdirs();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         return DocumentFile.fromFile(getDefaultDestinationDirectory());
     }
 
@@ -107,7 +112,7 @@ public class ShareSettingsActivity extends PluginSettingsActivity {
             Uri uri = resultData.getData();
 
             getContentResolver().takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION |
-                                                                   Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                    Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
 
             Preference filePicker = findPreference("share_destination_folder_preference");
             filePicker.setSummary(uri.getPath());

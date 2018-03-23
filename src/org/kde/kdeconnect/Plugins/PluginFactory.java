@@ -53,7 +53,7 @@ public class PluginFactory {
 
         public PluginInfo(String displayName, String description, Drawable icon,
                           boolean enabledByDefault, boolean hasSettings, boolean listenToUnpaired,
-                          String[] supportedPackageTypes, String[] outgoingPackageTypes) {
+                          String[] supportedPacketTypes, String[] outgoingPacketTypes) {
             this.displayName = displayName;
             this.description = description;
             this.icon = icon;
@@ -61,11 +61,11 @@ public class PluginFactory {
             this.hasSettings = hasSettings;
             this.listenToUnpaired = listenToUnpaired;
             HashSet<String> incoming = new HashSet<>();
-            if (supportedPackageTypes != null) Collections.addAll(incoming, supportedPackageTypes);
-            this.supportedPackageTypes = Collections.unmodifiableSet(incoming);
+            if (supportedPacketTypes != null) Collections.addAll(incoming, supportedPacketTypes);
+            this.supportedPacketTypes = Collections.unmodifiableSet(incoming);
             HashSet<String> outgoing = new HashSet<>();
-            if (outgoingPackageTypes != null) Collections.addAll(outgoing, outgoingPackageTypes);
-            this.outgoingPackageTypes = Collections.unmodifiableSet(outgoing);
+            if (outgoingPacketTypes != null) Collections.addAll(outgoing, outgoingPacketTypes);
+            this.outgoingPacketTypes = Collections.unmodifiableSet(outgoing);
         }
 
         public String getDisplayName() {
@@ -80,7 +80,9 @@ public class PluginFactory {
             return icon;
         }
 
-        public boolean hasSettings() { return hasSettings; }
+        public boolean hasSettings() {
+            return hasSettings;
+        }
 
         public boolean isEnabledByDefault() {
             return enabledByDefault;
@@ -90,12 +92,12 @@ public class PluginFactory {
             return listenToUnpaired;
         }
 
-        public Set<String> getOutgoingPackageTypes() {
-            return outgoingPackageTypes;
+        public Set<String> getOutgoingPacketTypes() {
+            return outgoingPacketTypes;
         }
 
-        public Set<String> getSupportedPackageTypes() {
-            return supportedPackageTypes;
+        public Set<String> getSupportedPacketTypes() {
+            return supportedPacketTypes;
         }
 
         private final String displayName;
@@ -104,8 +106,8 @@ public class PluginFactory {
         private final boolean enabledByDefault;
         private final boolean hasSettings;
         private final boolean listenToUnpaired;
-        private final Set<String> supportedPackageTypes;
-        private final Set<String> outgoingPackageTypes;
+        private final Set<String> supportedPacketTypes;
+        private final Set<String> outgoingPacketTypes;
 
     }
 
@@ -138,15 +140,15 @@ public class PluginFactory {
         }
 
         try {
-            Plugin p = ((Plugin)availablePlugins.get(pluginKey).newInstance());
+            Plugin p = ((Plugin) availablePlugins.get(pluginKey).newInstance());
             p.setContext(context, null);
             info = new PluginInfo(p.getDisplayName(), p.getDescription(), p.getIcon(),
                     p.isEnabledByDefault(), p.hasSettings(), p.listensToUnpairedDevices(),
-                    p.getSupportedPackageTypes(), p.getOutgoingPackageTypes());
+                    p.getSupportedPacketTypes(), p.getOutgoingPacketTypes());
             pluginInfoCache.put(pluginKey, info); //Cache it
             return info;
-        } catch(Exception e) {
-            Log.e("PluginFactory","getPluginInfo exception");
+        } catch (Exception e) {
+            Log.e("PluginFactory", "getPluginInfo exception");
             e.printStackTrace();
             throw new RuntimeException(e);
         }
@@ -160,16 +162,16 @@ public class PluginFactory {
     public static Plugin instantiatePluginForDevice(Context context, String pluginKey, Device device) {
         Class c = availablePlugins.get(pluginKey);
         if (c == null) {
-            Log.e("PluginFactory", "Plugin not found: "+pluginKey);
+            Log.e("PluginFactory", "Plugin not found: " + pluginKey);
             return null;
         }
 
         try {
-            Plugin plugin = (Plugin)c.newInstance();
+            Plugin plugin = (Plugin) c.newInstance();
             plugin.setContext(context, device);
             return plugin;
-        } catch(Exception e) {
-            Log.e("PluginFactory", "Could not instantiate plugin: "+pluginKey);
+        } catch (Exception e) {
+            Log.e("PluginFactory", "Could not instantiate plugin: " + pluginKey);
             e.printStackTrace();
             return null;
         }
@@ -180,8 +182,8 @@ public class PluginFactory {
         try {
             String pluginKey = Plugin.getPluginKey(pluginClass);
             availablePlugins.put(pluginKey, pluginClass);
-        } catch(Exception e) {
-            Log.e("PluginFactory","addPlugin exception");
+        } catch (Exception e) {
+            Log.e("PluginFactory", "addPlugin exception");
             e.printStackTrace();
         }
     }
@@ -191,7 +193,7 @@ public class PluginFactory {
         HashSet<String> capabilities = new HashSet<>();
         for (String pluginId : availablePlugins.keySet()) {
             PluginInfo plugin = getPluginInfo(context, pluginId);
-            capabilities.addAll(plugin.getSupportedPackageTypes());
+            capabilities.addAll(plugin.getSupportedPacketTypes());
         }
 
         return capabilities;
@@ -201,7 +203,7 @@ public class PluginFactory {
         HashSet<String> capabilities = new HashSet<>();
         for (String pluginId : availablePlugins.keySet()) {
             PluginInfo plugin = getPluginInfo(context, pluginId);
-            capabilities.addAll(plugin.getOutgoingPackageTypes());
+            capabilities.addAll(plugin.getOutgoingPacketTypes());
         }
         return capabilities;
     }
@@ -211,8 +213,8 @@ public class PluginFactory {
         for (String pluginId : availablePlugins.keySet()) {
             PluginInfo plugin = getPluginInfo(context, pluginId);
             //Check incoming against outgoing
-            if (Collections.disjoint(outgoing, plugin.getSupportedPackageTypes())
-                && Collections.disjoint(incoming, plugin.getOutgoingPackageTypes())) {
+            if (Collections.disjoint(outgoing, plugin.getSupportedPacketTypes())
+                    && Collections.disjoint(incoming, plugin.getOutgoingPacketTypes())) {
                 Log.i("PluginFactory", "Won't load " + pluginId + " because of unmatched capabilities");
                 continue; //No capabilities in common, do not load this plugin
             }

@@ -33,17 +33,17 @@ import android.support.v4.app.TaskStackBuilder;
 import android.util.Log;
 
 import org.kde.kdeconnect.Helpers.NotificationHelper;
-import org.kde.kdeconnect.NetworkPackage;
+import org.kde.kdeconnect.NetworkPacket;
 import org.kde.kdeconnect.Plugins.Plugin;
-import org.kde.kdeconnect.UserInterface.MaterialActivity;
+import org.kde.kdeconnect.UserInterface.MainActivity;
 import org.kde.kdeconnect_tp.R;
 
 import java.io.InputStream;
 
 public class ReceiveNotificationsPlugin extends Plugin {
 
-    public final static String PACKAGE_TYPE_NOTIFICATION = "kdeconnect.notification";
-    public final static String PACKAGE_TYPE_NOTIFICATION_REQUEST = "kdeconnect.notification.request";
+    public final static String PACKET_TYPE_NOTIFICATION = "kdeconnect.notification";
+    public final static String PACKET_TYPE_NOTIFICATION_REQUEST = "kdeconnect.notification.request";
 
     @Override
     public String getDisplayName() {
@@ -63,21 +63,21 @@ public class ReceiveNotificationsPlugin extends Plugin {
     @Override
     public boolean onCreate() {
         // request all existing notifications
-        NetworkPackage np = new NetworkPackage(PACKAGE_TYPE_NOTIFICATION_REQUEST);
+        NetworkPacket np = new NetworkPacket(PACKET_TYPE_NOTIFICATION_REQUEST);
         np.set("request", true);
-        device.sendPackage(np);
+        device.sendPacket(np);
         return true;
     }
 
     @Override
-    public boolean onPackageReceived(final NetworkPackage np) {
+    public boolean onPacketReceived(final NetworkPacket np) {
 
         if (!np.has("ticker") || !np.has("appName") || !np.has("id")) {
             Log.e("NotificationsPlugin", "Received notification package lacks properties");
         } else {
             TaskStackBuilder stackBuilder = TaskStackBuilder.create(context);
-            stackBuilder.addParentStack(MaterialActivity.class);
-            stackBuilder.addNextIntent(new Intent(context, MaterialActivity.class));
+            stackBuilder.addParentStack(MainActivity.class);
+            stackBuilder.addNextIntent(new Intent(context, MainActivity.class));
             PendingIntent resultPendingIntent = stackBuilder.getPendingIntent(
                     0,
                     PendingIntent.FLAG_UPDATE_CURRENT
@@ -93,7 +93,10 @@ public class ReceiveNotificationsPlugin extends Plugin {
                 }
                 final InputStream input = np.getPayload();
                 largeIcon = BitmapFactory.decodeStream(np.getPayload());
-                try { input.close(); } catch (Exception e) { }
+                try {
+                    input.close();
+                } catch (Exception e) {
+                }
                 if (largeIcon != null) {
                     //Log.i("NotificationsPlugin", "hasPayload: size=" + largeIcon.getWidth() + "/" + largeIcon.getHeight() + " opti=" + width + "/" + height);
                     if (largeIcon.getWidth() > width || largeIcon.getHeight() > height) {
@@ -123,13 +126,13 @@ public class ReceiveNotificationsPlugin extends Plugin {
     }
 
     @Override
-    public String[] getSupportedPackageTypes() {
-        return new String[]{PACKAGE_TYPE_NOTIFICATION};
+    public String[] getSupportedPacketTypes() {
+        return new String[]{PACKET_TYPE_NOTIFICATION};
     }
 
     @Override
-    public String[] getOutgoingPackageTypes() {
-        return new String[]{PACKAGE_TYPE_NOTIFICATION_REQUEST};
+    public String[] getOutgoingPacketTypes() {
+        return new String[]{PACKET_TYPE_NOTIFICATION_REQUEST};
     }
 
 }

@@ -21,17 +21,10 @@
 package org.kde.kdeconnect.Plugins.SftpPlugin;
 
 import android.Manifest;
-import android.app.Activity;
-import android.app.AlertDialog;
-import android.content.pm.PackageManager;
 import android.os.Environment;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
-import android.util.Log;
 
-import org.json.JSONException;
 import org.kde.kdeconnect.Helpers.StorageHelper;
-import org.kde.kdeconnect.NetworkPackage;
+import org.kde.kdeconnect.NetworkPacket;
 import org.kde.kdeconnect.Plugins.Plugin;
 import org.kde.kdeconnect_tp.R;
 
@@ -41,12 +34,10 @@ import java.util.List;
 
 public class SftpPlugin extends Plugin {
 
-    public final static String PACKAGE_TYPE_SFTP = "kdeconnect.sftp";
-    public final static String PACKAGE_TYPE_SFTP_REQUEST = "kdeconnect.sftp.request";
+    public final static String PACKET_TYPE_SFTP = "kdeconnect.sftp";
+    public final static String PACKET_TYPE_SFTP_REQUEST = "kdeconnect.sftp.request";
 
     private static final SimpleSftpServer server = new SimpleSftpServer();
-
-    private int sftpPermissionExplanation = R.string.sftp_permission_explanation;
 
     @Override
     public String getDisplayName() {
@@ -61,7 +52,7 @@ public class SftpPlugin extends Plugin {
     @Override
     public boolean onCreate() {
         server.init(context, device);
-        permissionExplanation = sftpPermissionExplanation;
+        permissionExplanation = R.string.sftp_permission_explanation;
         return true;
     }
 
@@ -71,12 +62,12 @@ public class SftpPlugin extends Plugin {
     }
 
     @Override
-    public boolean onPackageReceived(NetworkPackage np) {
+    public boolean onPacketReceived(NetworkPacket np) {
 
         if (np.getBoolean("startBrowsing")) {
             if (server.start()) {
 
-                NetworkPackage np2 = new NetworkPackage(PACKAGE_TYPE_SFTP);
+                NetworkPacket np2 = new NetworkPacket(PACKET_TYPE_SFTP);
 
                 np2.set("ip", server.getLocalIpAddress());
                 np2.set("port", server.getPort());
@@ -130,7 +121,7 @@ public class SftpPlugin extends Plugin {
 
                 }
 
-                device.sendPackage(np2);
+                device.sendPacket(np2);
 
                 return true;
             }
@@ -140,18 +131,17 @@ public class SftpPlugin extends Plugin {
 
     @Override
     public String[] getRequiredPermissions() {
-        String[] perms = {Manifest.permission.READ_EXTERNAL_STORAGE};
-        return perms;
+        return new String[]{Manifest.permission.READ_EXTERNAL_STORAGE};
     }
 
     @Override
-    public String[] getSupportedPackageTypes() {
-        return new String[]{PACKAGE_TYPE_SFTP_REQUEST};
+    public String[] getSupportedPacketTypes() {
+        return new String[]{PACKET_TYPE_SFTP_REQUEST};
     }
 
     @Override
-    public String[] getOutgoingPackageTypes() {
-        return new String[]{PACKAGE_TYPE_SFTP};
+    public String[] getOutgoingPacketTypes() {
+        return new String[]{PACKET_TYPE_SFTP};
     }
 
 }

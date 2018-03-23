@@ -31,7 +31,6 @@
   <string name="send_ping">أرسل وخزة</string>
   <string name="open_mpris_controls">تحكّمات الوسائط المتعدّدة</string>
   <string name="open_mousepad">الدّخل البعيد</string>
-  <string name="mousepad_info">حرّك اصبعًا على الشّاشة لتحريك مؤشّر الفأرة. المس للنّقر واستخدم إصبعين أو ثلاث للزّرّين الأيمن والأوسط. انقر مطوّلًا للسّحب والإفلات.</string>
   <string name="mousepad_double_tap_settings_title">اضبط إجراء اللمس بإصبعين</string>
   <string name="mousepad_triple_tap_settings_title">اضبط إجراء اللمس بثلاث أصابع</string>
   <string name="mousepad_sensitivity_settings_title">اضبط حساسيّة لوحة اللمس</string>
@@ -76,7 +75,6 @@
   <string name="incoming_file_title">ملفّ وارد من %1s</string>
   <string name="incoming_file_text">%1s</string>
   <string name="outgoing_file_title">يرسل ملفًّا إلى %1s</string>
-  <string name="outgoing_file_text">%1s</string>
   <string name="received_file_title">استُقبل ملفّ من %1s</string>
   <string name="received_file_fail_title">فشل استقبال الملفّ من %1s</string>
   <string name="received_file_text">المس لفتح \'%1s\'</string>
