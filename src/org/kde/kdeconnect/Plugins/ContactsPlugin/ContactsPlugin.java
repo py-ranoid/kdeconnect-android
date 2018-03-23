@@ -29,7 +29,7 @@ import android.util.Log;
 
 import org.json.JSONArray;
 import org.kde.kdeconnect.Helpers.ContactsHelper;
-import org.kde.kdeconnect.NetworkPackage;
+import org.kde.kdeconnect.NetworkPacket;
 import org.kde.kdeconnect.Plugins.Plugin;
 import org.kde.kdeconnect_tp.R;
 
@@ -46,39 +46,39 @@ public class ContactsPlugin extends Plugin {
     /**
      * Used to request the device send the unique ID of every contact
      */
-    public static final String PACKAGE_TYPE_CONTACTS_REQUEST_ALL_UIDS = "kdeconnect.contacts.request_all_uids";
+    public static final String PACKET_TYPE_CONTACTS_REQUEST_ALL_UIDS = "kdeconnect.contacts.request_all_uids";
 
     /**
      * Used to request the names for the contacts corresponding to a list of UIDs
      * <p>
      * It shall contain the key "uids", which will have a list of uIDs (long int, as string)
      */
-    public static final String PACKAGE_TYPE_CONTACTS_REQUEST_NAMES_BY_UIDS = "kdeconnect.contacts.request_names_by_uid";
+    public static final String PACKET_TYPE_CONTACTS_REQUEST_NAMES_BY_UIDS = "kdeconnect.contacts.request_names_by_uid";
 
     /**
      * Used to request the phone numbers for the contacts corresponding to a list of UIDs
      * <p>
      * It shall contain the key "uids", which will have a list of uIDs (long int, as string)
      */
-    public static final String PACKAGE_TYPE_CONTACTS_REQUEST_PHONES_BY_UIDS = "kdeconnect.contacts.request_phones_by_uid";
+    public static final String PACKET_TYPE_CONTACTS_REQUEST_PHONES_BY_UIDS = "kdeconnect.contacts.request_phones_by_uid";
 
     /**
      * Used to request the email addresses for the contacts corresponding to a list of UIDs
      * <p>
      * It shall contain the key "uids", which will have a list of uIDs (long int, as string)
      */
-    public static final String PACKAGE_TYPE_CONTACTS_REQUEST_EMAILS_BY_UIDS = "kdeconnect.contacts.request_emails_by_uid";
+    public static final String PACKET_TYPE_CONTACTS_REQUEST_EMAILS_BY_UIDS = "kdeconnect.contacts.request_emails_by_uid";
 
     /**
-     * Response indicating the package contains a list of contact uIDs
+     * Response indicating the packet contains a list of contact uIDs
      * <p>
      * It shall contain the key "uids", which will mark a list of uIDs (long int, as string)
      * The returned IDs can be used in future requests for more information about the contact
      */
-    public static final String PACKAGE_TYPE_CONTACTS_RESPONSE_UIDS = "kdeconnect.contacts.response_uids";
+    public static final String PACKET_TYPE_CONTACTS_RESPONSE_UIDS = "kdeconnect.contacts.response_uids";
 
     /**
-     * Response indicating the package contains a list of contact names
+     * Response indicating the packet contains a list of contact names
      * <p>
      * It shall contain the key "uids", which will mark a list of uIDs (long int, as string)
      * then, for each UID, there shall be a field with the key of that UID and the value of the name of the contact
@@ -89,10 +89,10 @@ public class ContactsPlugin extends Plugin {
      *     '3'  : 'Abe Lincoln',
      *     '15' : 'Mom' )
      */
-    public static final String PACKAGE_TYPE_CONTACTS_RESPONSE_NAMES = "kdeconnect.contacts.response_names";
+    public static final String PACKET_TYPE_CONTACTS_RESPONSE_NAMES = "kdeconnect.contacts.response_names";
 
     /**
-     * Response indicating the package contains a list of contact numbers
+     * Response indicating the packet contains a list of contact numbers
      * <p>
      * It shall contain the key "uids", which will mark a list of uIDs (long int, as string)
      * then, for each UID, there shall be a 3-field list containing the phone number, the type, and the label
@@ -108,10 +108,10 @@ public class ContactsPlugin extends Plugin {
      *     '3'  : [ [ '+1(222)333-4444', '0', 'Big Red Button' ] ] // This number has a custom type
      *     '15' : [ [ '6061234', '1', '' ] ] )
      */
-    public static final String PACKAGE_TYPE_CONTACTS_RESPONSE_PHONES = "kdeconnect.contacts.response_phones";
+    public static final String PACKET_TYPE_CONTACTS_RESPONSE_PHONES = "kdeconnect.contacts.response_phones";
 
     /**
-     * Response indicating the package contains a list of contact email addresses
+     * Response indicating the packet contains a list of contact email addresses
      * <p>
      * It shall contain the key "uids", which will mark a list of uIDs (long int, as string)
      * then, for each UID, there shall be a 3-field list containing the email address, the type, and the label
@@ -127,7 +127,7 @@ public class ContactsPlugin extends Plugin {
      * '3'  : [ [ 'abel@example.com', '0', 'Priority' ] ] // This email address has a custom type
      * '15' : [ [ 'mom@example.com', '1', '' ] ] )
      */
-    public static final String PACKAGE_TYPE_CONTACTS_RESPONSE_EMAILS = "kdeconnect.contacts.response_emails";
+    public static final String PACKET_TYPE_CONTACTS_RESPONSE_EMAILS = "kdeconnect.contacts.response_emails";
 
     private int contactsPermissionExplanation = R.string.contacts_permission_explanation;
 
@@ -142,22 +142,22 @@ public class ContactsPlugin extends Plugin {
     }
 
     @Override
-    public String[] getSupportedPackageTypes() {
+    public String[] getSupportedPacketTypes() {
         return new String[]{
-                PACKAGE_TYPE_CONTACTS_REQUEST_ALL_UIDS,
-                PACKAGE_TYPE_CONTACTS_REQUEST_NAMES_BY_UIDS,
-                PACKAGE_TYPE_CONTACTS_REQUEST_PHONES_BY_UIDS,
-                PACKAGE_TYPE_CONTACTS_REQUEST_EMAILS_BY_UIDS
+                PACKET_TYPE_CONTACTS_REQUEST_ALL_UIDS,
+                PACKET_TYPE_CONTACTS_REQUEST_NAMES_BY_UIDS,
+                PACKET_TYPE_CONTACTS_REQUEST_PHONES_BY_UIDS,
+                PACKET_TYPE_CONTACTS_REQUEST_EMAILS_BY_UIDS
         };
     }
 
     @Override
-    public String[] getOutgoingPackageTypes() {
+    public String[] getOutgoingPacketTypes() {
         return new String[]{
-                PACKAGE_TYPE_CONTACTS_RESPONSE_UIDS,
-                PACKAGE_TYPE_CONTACTS_RESPONSE_NAMES,
-                PACKAGE_TYPE_CONTACTS_RESPONSE_PHONES,
-                PACKAGE_TYPE_CONTACTS_RESPONSE_EMAILS
+                PACKET_TYPE_CONTACTS_RESPONSE_UIDS,
+                PACKET_TYPE_CONTACTS_RESPONSE_NAMES,
+                PACKET_TYPE_CONTACTS_RESPONSE_PHONES,
+                PACKET_TYPE_CONTACTS_RESPONSE_EMAILS
         };
     }
 
@@ -191,8 +191,8 @@ public class ContactsPlugin extends Plugin {
      * @param np The package containing the request
      * @return true if successfully handled, false otherwise
      */
-    protected boolean handleRequestAllUIDs(NetworkPackage np) {
-        NetworkPackage reply = new NetworkPackage(PACKAGE_TYPE_CONTACTS_RESPONSE_UIDS);
+    protected boolean handleRequestAllUIDs(NetworkPacket np) {
+        NetworkPacket reply = new NetworkPacket(PACKET_TYPE_CONTACTS_RESPONSE_UIDS);
 
         List<Long> uIDs = ContactsHelper.getAllContactRawContactIDs(context);
 
@@ -204,12 +204,12 @@ public class ContactsPlugin extends Plugin {
 
         reply.set("uids", uIDsAsStrings);
 
-        device.sendPackage(reply);
+        device.sendPacket(reply);
 
         return true;
     }
 
-    protected boolean handleRequestNamesByUIDs(NetworkPackage np) {
+    protected boolean handleRequestNamesByUIDs(NetworkPacket np) {
         if (!np.has("uids")) {
             Log.e("ContactsPlugin", "handleRequestNamesByUIDs received a malformed packet with no uids key");
             return false;
@@ -233,7 +233,7 @@ public class ContactsPlugin extends Plugin {
         // some of the requested uIDs if they were not in the database, so update our list
         uIDsAsStrings = new ArrayList<>(uIDsToNames.size());
 
-        NetworkPackage reply = new NetworkPackage(PACKAGE_TYPE_CONTACTS_RESPONSE_NAMES);
+        NetworkPacket reply = new NetworkPacket(PACKET_TYPE_CONTACTS_RESPONSE_NAMES);
 
         // Add the names to the packet
         for (Long uID : uIDsToNames.keySet()) {
@@ -257,12 +257,12 @@ public class ContactsPlugin extends Plugin {
         // Add the valid uIDs to the packet
         reply.set("uids", uIDsAsStrings);
 
-        device.sendPackage(reply);
+        device.sendPacket(reply);
 
         return true;
     }
 
-    protected boolean handleRequestPhonesByUIDs(NetworkPackage np) {
+    protected boolean handleRequestPhonesByUIDs(NetworkPacket np) {
         if (!np.has("uids")) {
             Log.e("ContactsPlugin", "handleRequestPhonesByUIDs received a malformed packet with no uids key");
             return false;
@@ -292,7 +292,7 @@ public class ContactsPlugin extends Plugin {
         // some of the requested uIDs if they were not in the database, so update our list
         uIDsAsStrings = new ArrayList<>(uIDsToPhones.size());
 
-        NetworkPackage reply = new NetworkPackage(PACKAGE_TYPE_CONTACTS_RESPONSE_PHONES);
+        NetworkPacket reply = new NetworkPacket(PACKET_TYPE_CONTACTS_RESPONSE_PHONES);
 
         // Add the phone numbers to the packet
         for (Long uID : uIDsToPhones.keySet()) {
@@ -343,12 +343,12 @@ public class ContactsPlugin extends Plugin {
         // Add the valid uIDs to the packet
         reply.set("uids", uIDsAsStrings);
 
-        device.sendPackage(reply);
+        device.sendPacket(reply);
 
         return true;
     }
 
-    protected boolean handleRequestEmailsByUIDs(NetworkPackage np) {
+    protected boolean handleRequestEmailsByUIDs(NetworkPacket np) {
         if (!np.has("uids")) {
             Log.e("ContactsPlugin", "handleRequestEmailsByUIDs received a malformed packet with no uids key");
             return false;
@@ -378,7 +378,7 @@ public class ContactsPlugin extends Plugin {
         // some of the requested uIDs if they were not in the database, so update our list
         uIDsAsStrings = new ArrayList<>(uIDsToEmails.size());
 
-        NetworkPackage reply = new NetworkPackage(PACKAGE_TYPE_CONTACTS_RESPONSE_EMAILS);
+        NetworkPacket reply = new NetworkPacket(PACKET_TYPE_CONTACTS_RESPONSE_EMAILS);
 
         // Add the email addresses to the packet
         for (Long uID : uIDsToEmails.keySet()) {
@@ -429,20 +429,20 @@ public class ContactsPlugin extends Plugin {
         // Add the valid uIDs to the packet
         reply.set("uids", uIDsAsStrings);
 
-        device.sendPackage(reply);
+        device.sendPacket(reply);
 
         return true;
     }
 
     @Override
-    public boolean onPackageReceived(NetworkPackage np) {
-        if (np.getType().equals(PACKAGE_TYPE_CONTACTS_REQUEST_ALL_UIDS)) {
+    public boolean onPacketReceived(NetworkPacket np) {
+        if (np.getType().equals(PACKET_TYPE_CONTACTS_REQUEST_ALL_UIDS)) {
             return this.handleRequestAllUIDs(np);
-        } else if (np.getType().equals(PACKAGE_TYPE_CONTACTS_REQUEST_NAMES_BY_UIDS)) {
+        } else if (np.getType().equals(PACKET_TYPE_CONTACTS_REQUEST_NAMES_BY_UIDS)) {
             return this.handleRequestNamesByUIDs(np);
-        } else if (np.getType().equals(PACKAGE_TYPE_CONTACTS_REQUEST_PHONES_BY_UIDS)) {
+        } else if (np.getType().equals(PACKET_TYPE_CONTACTS_REQUEST_PHONES_BY_UIDS)) {
             return this.handleRequestPhonesByUIDs(np);
-        } else if (np.getType().equals(PACKAGE_TYPE_CONTACTS_REQUEST_EMAILS_BY_UIDS)) {
+        } else if (np.getType().equals(PACKET_TYPE_CONTACTS_REQUEST_EMAILS_BY_UIDS)) {
             return this.handleRequestEmailsByUIDs(np);
         } else {
             Log.e("ContactsPlugin", "Contacts plugin received an unexpected packet!");
