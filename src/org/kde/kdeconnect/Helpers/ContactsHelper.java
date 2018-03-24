@@ -196,7 +196,7 @@ public class ContactsHelper {
      * @return mapping of raw contact IDs to desired values, which are a mapping of column names to the data contained there
      */
     @TargetApi(Build.VERSION_CODES.HONEYCOMB) // Needed for Cursor.getType(..)
-    public static Map<Long, Map<String, Object>> getColumnsFromContactsForRawContactIDs(Context context, Set<Long> IDs, String[] contactsProjection) {
+    public static Map<Long, Map<String, Object>> getColumnsFromContactsForRawContactIDs(Context context, Collection<Long> IDs, String[] contactsProjection) {
         HashMap<Long, Map<String, Object>> toReturn = new HashMap<>();
 
         // Define the columns we want to read from the RawContacts database
@@ -323,7 +323,7 @@ public class ContactsHelper {
      * @return mapping of raw contact IDs to desired values, which are a mapping of column names to the data contained there
      */
     @TargetApi(Build.VERSION_CODES.HONEYCOMB) // Needed for Cursor.getType(..)
-    public static Map<Long, List<Map<String, Object>>> getColumnsFromDataForRawContactIDs(Context context, Set<Long> IDs, String dataMimetype, String[] dataProjection) {
+    public static Map<Long, List<Map<String, Object>>> getColumnsFromDataForRawContactIDs(Context context, Collection<Long> IDs, String dataMimetype, String[] dataProjection) {
         HashMap<Long, List<Map<String, Object>>> toReturn = new HashMap<>();
 
         // Define a filter for the type of data we were asked to get
