@@ -34,10 +34,15 @@ import android.util.Log;
 
 import org.json.JSONArray;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -178,6 +183,62 @@ public class ContactsHelper {
             try {
                 contactsCursor.close();
             } catch (Exception e) {
+            }
+        }
+
+        return toReturn;
+    }
+
+    /**
+     * Get the VCard for every specified raw contact ID
+     *
+     * @param context android.content.Context running the request
+     * @param IDs   collection of raw contact IDs to look up
+     * @param pictures Whether pictures should be returned as part of the request
+     * @return Mapping of raw contact IDs to the corresponding VCard
+     */
+    public static Map<Long, String> getVCardsForContactIDs(Context context, Collection<Long> IDs, boolean pictures) {
+        Map<Long, String> toReturn = new HashMap<>();
+
+        // Get the contacts' lookup keys, since that is how VCard is looked up
+        final String[] contactsProjection = new String[]{
+                ContactsContract.Contacts.LOOKUP_KEY
+        };
+
+        Map<Long, Map<String, Object>> lookupKeysMap = getColumnsFromContactsForRawContactIDs(context, IDs, contactsProjection);
+        Map<Long, String> lookupKeys = new HashMap<>();
+
+        for (Long ID : lookupKeysMap.keySet()) {
+            Map<String, Object> returnedColumns = lookupKeysMap.get(ID);
+            lookupKeys.put(ID, (String) returnedColumns.get(ContactsContract.Contacts.LOOKUP_KEY));
+        }
+
+        for ( Long ID : lookupKeys.keySet() ) {
+            String lookupKey = lookupKeys.get(ID);
+            Uri vcardURI = Uri.withAppendedPath(ContactsContract.Contacts.CONTENT_VCARD_URI, lookupKey);
+            InputStream input;
+            try {
+                input = context.getContentResolver().openInputStream(vcardURI);
+            } catch (FileNotFoundException e) {
+                // TODO: In what case is the vcard not found?
+                e.printStackTrace();
+                continue;
+            }
+
+            BufferedReader bufferedInput = new BufferedReader(new InputStreamReader(input));
+
+            StringBuilder vcard = new StringBuilder();
+            String line;
+
+            try {
+                while ((line = bufferedInput.readLine()) != null) {
+                    vcard.append(line).append('\n');
+                }
+
+                toReturn.put(ID, vcard.toString());
+            } catch (IOException e) {
+                e.printStackTrace();
+                continue;
             }
         }
 
