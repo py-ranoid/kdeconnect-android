@@ -194,10 +194,9 @@ public class ContactsHelper {
      *
      * @param context android.content.Context running the request
      * @param IDs   collection of raw contact IDs to look up
-     * @param pictures Whether pictures should be returned as part of the request
      * @return Mapping of raw contact IDs to the corresponding VCard
      */
-    public static Map<Long, String> getVCardsForContactIDs(Context context, Collection<Long> IDs, boolean pictures) {
+    public static Map<Long, String> getVCardsForContactIDs(Context context, Collection<Long> IDs) {
         Map<Long, String> toReturn = new HashMap<>();
 
         // Get the contacts' lookup keys, since that is how VCard is looked up
