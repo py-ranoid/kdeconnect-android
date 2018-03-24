@@ -28,6 +28,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.PhoneLookup;
+import android.support.annotation.RequiresApi;
 import android.util.Base64;
 import android.util.Base64OutputStream;
 import android.util.Log;
@@ -190,6 +191,108 @@ public class ContactsHelper {
     }
 
     /**
+     * Get VCards using the batch database query which requires Android API 21
+     *
+     * @param context android.content.Context running the request
+     * @param IDs   collection of raw contact IDs to look up
+     * @param lookupKeys
+     * @return Mapping of raw contact IDs to corresponding VCard
+     */
+    @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
+    protected static Map<Long, String> getVCardsFast(Context context, Collection<Long> IDs, Map<Long, String> lookupKeys) {
+        Map<Long, String> toReturn = new HashMap<>();
+        StringBuilder keys = new StringBuilder();
+
+        List<Long> orderedIDs = new ArrayList<>(IDs);
+
+        for (Long ID : orderedIDs) {
+            String key = lookupKeys.get(ID);
+            keys.append(key);
+            keys.append(':');
+        }
+
+        // Remove trailing ':'
+        keys.deleteCharAt(keys.length() - 1);
+
+        Uri vcardURI = Uri.withAppendedPath(
+                ContactsContract.Contacts.CONTENT_MULTI_VCARD_URI,
+                Uri.encode(keys.toString()));
+
+        InputStream input;
+        StringBuilder vcardJumble = new StringBuilder();
+        try {
+            input = context.getContentResolver().openInputStream(vcardURI);
+
+            BufferedReader bufferedInput = new BufferedReader(new InputStreamReader(input));
+            String line;
+
+            while ((line = bufferedInput.readLine()) != null) {
+                vcardJumble.append(line).append('\n');
+            }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        // WARNING -- UNDOCUMENTED BEHAVIOR USED AHEAD
+        // Android returns the vcards as a big flat string of vcards
+        // It **appears** that these vcards are in the same order as we requested them
+        // We are relying on this behavior to connect VCards to the unique IDs
+
+        String[] vcards = vcardJumble.toString().split("END:VCARD");
+        for (int index = 0; index < orderedIDs.size(); index ++) {
+            String vcard = vcards[index] + "END:VCARD";
+            Long ID = orderedIDs.get(index);
+            toReturn.put(ID, vcard);
+        }
+
+        return toReturn;
+    }
+
+    /**
+     * Get VCards using serial database lookups. This is tragically slow, but at least supports old Android versions
+     *
+     * Use getVCardsFast for API >= 21
+     *
+     * @param context android.content.Context running the request
+     * @param IDs   collection of raw contact IDs to look up
+     * @param lookupKeys
+     * @return
+     */
+    protected static Map<Long, String> getVCardsSlow(Context context, Collection<Long> IDs, Map<Long, String> lookupKeys) {
+        Map<Long, String> toReturn = new HashMap<>();
+
+        for ( Long ID : lookupKeys.keySet() ) {
+            String lookupKey = lookupKeys.get(ID);
+            Uri vcardURI = Uri.withAppendedPath(ContactsContract.Contacts.CONTENT_VCARD_URI, lookupKey);
+            InputStream input;
+            try {
+                input = context.getContentResolver().openInputStream(vcardURI);
+
+                BufferedReader bufferedInput = new BufferedReader(new InputStreamReader(input));
+
+                StringBuilder vcard = new StringBuilder();
+                String line;
+                while ((line = bufferedInput.readLine()) != null) {
+                    vcard.append(line).append('\n');
+                }
+
+                toReturn.put(ID, vcard.toString());
+            } catch (FileNotFoundException e) {
+                // TODO: In what case is the vcard not found?
+                e.printStackTrace();
+                continue;
+            } catch (IOException e) {
+                e.printStackTrace();
+                continue;
+            }
+        }
+
+        return toReturn;
+    }
+
+    /**
      * Get the VCard for every specified raw contact ID
      *
      * @param context android.content.Context running the request
@@ -212,36 +315,12 @@ public class ContactsHelper {
             lookupKeys.put(ID, (String) returnedColumns.get(ContactsContract.Contacts.LOOKUP_KEY));
         }
 
-        for ( Long ID : lookupKeys.keySet() ) {
-            String lookupKey = lookupKeys.get(ID);
-            Uri vcardURI = Uri.withAppendedPath(ContactsContract.Contacts.CONTENT_VCARD_URI, lookupKey);
-            InputStream input;
-            try {
-                input = context.getContentResolver().openInputStream(vcardURI);
-            } catch (FileNotFoundException e) {
-                // TODO: In what case is the vcard not found?
-                e.printStackTrace();
-                continue;
-            }
-
-            BufferedReader bufferedInput = new BufferedReader(new InputStreamReader(input));
-
-            StringBuilder vcard = new StringBuilder();
-            String line;
-
-            try {
-                while ((line = bufferedInput.readLine()) != null) {
-                    vcard.append(line).append('\n');
-                }
-
-                toReturn.put(ID, vcard.toString());
-            } catch (IOException e) {
-                e.printStackTrace();
-                continue;
-            }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            return getVCardsFast(context, IDs, lookupKeys);
+        } else {
+            return getVCardsSlow(context, IDs, lookupKeys);
         }
 
-        return toReturn;
     }
 
     /**
