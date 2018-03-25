@@ -227,10 +227,6 @@ public class ContactsPlugin extends Plugin {
             uIDs.add(Long.parseLong(uID));
         }
 
-        final String[] contactsProjection = new String[]{
-                ContactsContract.Contacts.DISPLAY_NAME_PRIMARY
-        };
-
         Map<Long, String> uIDsToVCards = ContactsHelper.getVCardsForContactIDs(context, uIDs);
 
         // ContactsHelper.getVCardsForContactIDs(..) is allowed to reply without
