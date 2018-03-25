@@ -127,10 +127,50 @@ public class ContactsPlugin extends Plugin {
     }
 
     @Override
-    public int getMinSdk()
-    {
+    public int getMinSdk() {
         // Need API 18 for contact timestamps
         return Build.VERSION_CODES.JELLY_BEAN_MR2;
+    }
+
+    /**
+     * Add custom fields to the vcard to keep track of KDE Connect-specific fields
+     *
+     * These include the local device's uID as well as last-changed timestamp
+     *
+     * This might be extended in the future to include more fields
+     *
+     * @param vcard vcard to apply metadata to
+     * @param uID   uID to which the vcard corresponds
+     * @return
+     */
+    protected String addVCardMetadata(String vcard, Long uID) {
+        StringBuilder newVCard = new StringBuilder();
+
+        // Clean the END:VCARD tag
+        String vcardBody = vcard.substring(0, vcard.indexOf("END:VCARD"));
+
+        // Build the device ID line
+        // Unclear if the deviceID forms a valid name per the vcard spec. Worry about that later..
+        String uIDLine = "X-KDECONNECT-ID-DEV-" + device.getDeviceId() + ":" + uID.toString();
+
+        // Build the timestamp line
+        // Maybe one day this should be changed into the vcard-standard REV key
+        List<Long> uIDs = new ArrayList<>();
+        uIDs.add(uID);
+
+        final String[] contactsProjection = new String[]{
+                ContactsContract.Contacts.CONTACT_LAST_UPDATED_TIMESTAMP
+        };
+
+        Map<Long, Map<String, Object>> timestamp = ContactsHelper.getColumnsFromContactsForRawContactIDs(context, uIDs, contactsProjection);
+        String timestampLine = "X-KDECONNECT-TIMESTAMP:" + ((Integer)timestamp.get(uID).get(ContactsContract.Contacts.CONTACT_LAST_UPDATED_TIMESTAMP)).toString();
+
+        newVCard.append(vcardBody) // Body already has a trailing newline
+                .append(uIDLine).append('\n')
+                .append(timestampLine).append('\n')
+                .append("END:VCARD");
+
+        return newVCard.toString();
     }
 
     /**
@@ -199,9 +239,11 @@ public class ContactsPlugin extends Plugin {
 
         NetworkPacket reply = new NetworkPacket(PACKET_TYPE_CONTACTS_RESPONSE_VCARDS);
 
-        // Add the names to the packet
+        // Add the vcards to the packet
         for (Long uID : uIDsToVCards.keySet()) {
             String vcard = uIDsToVCards.get(uID);
+
+            vcard = this.addVCardMetadata(vcard, uID);
 
             // Store this as a valid uID
             uIDsAsStrings.add(uID.toString());
