@@ -174,7 +174,7 @@ public class ContactsHelper {
                     contactID = contactsCursor.getLong(idIndex);
                 } else {
                     // Something went wrong with this contact
-                    // TODO: Investigate why this would happen
+                    // If you are experiencing this, please open a bug report indicating how you got here
                     Log.e("ContactsHelper", "Got a contact which does not have a NAME_RAW_CONTACT_ID");
                     continue;
                 }
@@ -280,7 +280,7 @@ public class ContactsHelper {
 
                 toReturn.put(ID, vcard.toString());
             } catch (FileNotFoundException e) {
-                // TODO: In what case is the vcard not found?
+                // If you are experiencing this, please open a bug report indicating how you got here
                 e.printStackTrace();
                 continue;
             } catch (IOException e) {
@@ -364,7 +364,7 @@ public class ContactsHelper {
                     rawContactID = rawContactsCursor.getLong(rawContactIDIndex);
                 } else {
                     // This raw contact didn't have an ID? Something is very wrong.
-                    // TODO: Investigate why this would happen
+                    // If you are experiencing this, please open a bug report indicating how you got here
                     Log.e("ContactsHelper", "Got a raw contact which does not have an _ID");
                     continue;
                 }
@@ -382,7 +382,7 @@ public class ContactsHelper {
                     contactID = rawContactsCursor.getLong(contactIDIndex);
                 } else {
                     // Something went wrong with this contact
-                    // TODO: Investigate why this would happen
+                    // If you are experiencing this, please open a bug report indicating how you got here
                     Log.e("ContactsHelper", "Got a raw contact which does not have a CONTACT_ID");
                     continue;
                 }
@@ -409,7 +409,7 @@ public class ContactsHelper {
                         int type;
                         if (index == -1) {
                             // This raw contact didn't have an ID? Something is very wrong.
-                            // TODO: Investigate why this would happen
+                            // If you are experiencing this, please open a bug report indicating how you got here
                             Log.e("ContactsHelper", "Got a raw contact which does not have an _ID");
                             continue;
                         }
@@ -498,7 +498,7 @@ public class ContactsHelper {
                     rawContactID = dataCursor.getLong(rawContactIDIndex);
                 } else {
                     // This  didn't have a RAW_CONTACT_ID? Something is very wrong.
-                    // TODO: Investigate why this would happen
+                    // If you are experiencing this, please open a bug report indicating how you got here
                     Log.e("ContactsHelper", "Got a data contact which does not have a RAW_CONTACT_ID");
                     continue;
                 }
@@ -518,7 +518,7 @@ public class ContactsHelper {
                     int type;
                     if (index == -1) {
                         // This raw contact didn't have an ID? Something is very wrong.
-                        // TODO: Investigate why this would happen
+                        // If you are experiencing this, please open a bug report indicating how you got here
                         Log.e("ContactsHelper", "Got a raw contact which does not have an _ID");
                         continue;
                     }
