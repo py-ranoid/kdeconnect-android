@@ -117,7 +117,7 @@ public class ContactsPlugin extends Plugin {
      * Since this plugin could leak sensitive information, probably best to leave disabled by default
      */
     public boolean isEnabledByDefault() {
-        return false;
+        return true;
     }
 
     @Override
