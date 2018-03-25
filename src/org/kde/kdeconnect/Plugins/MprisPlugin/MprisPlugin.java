@@ -130,7 +130,7 @@ public class MprisPlugin extends Plugin {
          * @return The album art, or null if not available
          */
         public Bitmap getAlbumArt() {
-            return AlbumArtCache.getAlbumArt(albumArtUrl);
+            return AlbumArtCache.getAlbumArt(albumArtUrl, MprisPlugin.this, player);
         }
 
         public boolean isSetVolumeAllowed() {
@@ -205,6 +205,7 @@ public class MprisPlugin extends Plugin {
     public final static String PACKET_TYPE_MPRIS_REQUEST = "kdeconnect.mpris.request";
 
     private HashMap<String, MprisPlayer> players = new HashMap<>();
+    private boolean supportAlbumArtPayload = false;
     private HashMap<String, Handler> playerStatusUpdated = new HashMap<>();
 
     private HashMap<String, Handler> playerListUpdated = new HashMap<>();
@@ -231,7 +232,6 @@ public class MprisPlugin extends Plugin {
 
     @Override
     public boolean onCreate() {
-        requestPlayerList();
         MprisMediaSession.getInstance().onCreate(context.getApplicationContext(), this, device.getDeviceId());
 
         //Always request the player list so the data is up-to-date
@@ -266,6 +266,11 @@ public class MprisPlugin extends Plugin {
 
     @Override
     public boolean onPacketReceived(NetworkPacket np) {
+        if (np.getBoolean("transferringAlbumArt", false)) {
+            AlbumArtCache.payloadToDiskCache(np.getString("albumArtUrl"), np.getPayload());
+            return true;
+        }
+
         if (np.has("player")) {
             MprisPlayer playerStatus = players.get(np.getString("player"));
             if (playerStatus != null) {
@@ -305,6 +310,9 @@ public class MprisPlugin extends Plugin {
                 }
             }
         }
+
+        //Remember if the connected device support album art payloads
+        supportAlbumArtPayload = np.getBoolean("supportAlbumArtPayload", supportAlbumArtPayload);
 
         List<String> newPlayerList = np.getStringList("playerList");
         if (newPlayerList != null) {
@@ -462,5 +470,23 @@ public class MprisPlugin extends Plugin {
                 }
             }
         }
+    }
+
+    public boolean askTransferAlbumArt(String url, String playerName) {
+        //First check if the remote supports transferring album art
+        if (!supportAlbumArtPayload) return false;
+        if (url.isEmpty()) return false;
+
+        MprisPlayer player = getPlayerStatus(playerName);
+        if (player == null) return false;
+
+        if (player.albumArtUrl.equals(url)) {
+            NetworkPacket np = new NetworkPacket(PACKET_TYPE_MPRIS_REQUEST);
+            np.set("player", player.getPlayer());
+            np.set("albumArtUrl", url);
+            device.sendPacket(np);
+            return true;
+        }
+        return false;
     }
 }
