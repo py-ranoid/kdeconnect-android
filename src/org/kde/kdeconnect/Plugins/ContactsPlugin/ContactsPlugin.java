@@ -134,9 +134,9 @@ public class ContactsPlugin extends Plugin {
 
     /**
      * Add custom fields to the vcard to keep track of KDE Connect-specific fields
-     *
+     * <p>
      * These include the local device's uID as well as last-changed timestamp
-     *
+     * <p>
      * This might be extended in the future to include more fields
      *
      * @param vcard vcard to apply metadata to
@@ -163,7 +163,7 @@ public class ContactsPlugin extends Plugin {
         };
 
         Map<Long, Map<String, Object>> timestamp = ContactsHelper.getColumnsFromContactsForRawContactIDs(context, uIDs, contactsProjection);
-        String timestampLine = "X-KDECONNECT-TIMESTAMP:" + ((Integer)timestamp.get(uID).get(ContactsContract.Contacts.CONTACT_LAST_UPDATED_TIMESTAMP)).toString();
+        String timestampLine = "X-KDECONNECT-TIMESTAMP:" + ((Integer) timestamp.get(uID).get(ContactsContract.Contacts.CONTACT_LAST_UPDATED_TIMESTAMP)).toString();
 
         newVCard.append(vcardBody) // Body already has a trailing newline
                 .append(uIDLine).append('\n')
@@ -205,7 +205,7 @@ public class ContactsPlugin extends Plugin {
         Map<Long, Map<String, Object>> uIDsToTimestamps = ContactsHelper.getColumnsFromContactsForRawContactIDs(context, uIDs, contactsProjection);
         for (Long ID : uIDsToTimestamps.keySet()) {
             Map<String, Object> data = uIDsToTimestamps.get(ID);
-            reply.set(ID.toString(), (Integer)data.get(ContactsContract.Contacts.CONTACT_LAST_UPDATED_TIMESTAMP));
+            reply.set(ID.toString(), (Integer) data.get(ContactsContract.Contacts.CONTACT_LAST_UPDATED_TIMESTAMP));
         }
 
         device.sendPacket(reply);
