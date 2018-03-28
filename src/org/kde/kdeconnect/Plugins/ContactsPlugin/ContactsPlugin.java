@@ -30,6 +30,7 @@ import android.provider.ContactsContract;
 import android.util.Log;
 
 import org.kde.kdeconnect.Helpers.ContactsHelper;
+import org.kde.kdeconnect.Helpers.ContactsHelper.VCardBuilder;
 import org.kde.kdeconnect.NetworkPacket;
 import org.kde.kdeconnect.Plugins.Plugin;
 import org.kde.kdeconnect_tp.R;
@@ -143,15 +144,11 @@ public class ContactsPlugin extends Plugin {
      * @param uID   uID to which the vcard corresponds
      * @return
      */
-    protected String addVCardMetadata(String vcard, Long uID) {
-        StringBuilder newVCard = new StringBuilder();
-
-        // Clean the END:VCARD tag
-        String vcardBody = vcard.substring(0, vcard.indexOf("END:VCARD"));
-
-        // Build the device ID line
+    protected VCardBuilder addVCardMetadata(VCardBuilder vcard, Long uID) {
+        // Append the device ID line
         // Unclear if the deviceID forms a valid name per the vcard spec. Worry about that later..
-        String uIDLine = "X-KDECONNECT-ID-DEV-" + device.getDeviceId() + ":" + uID.toString();
+        vcard.appendLine("X-KDECONNECT-ID-DEV-" + device.getDeviceId(),
+                uID.toString());
 
         // Build the timestamp line
         // Maybe one day this should be changed into the vcard-standard REV key
@@ -163,14 +160,10 @@ public class ContactsPlugin extends Plugin {
         };
 
         Map<Long, Map<String, Object>> timestamp = ContactsHelper.getColumnsFromContactsForRawContactIDs(context, uIDs, contactsProjection);
-        String timestampLine = "X-KDECONNECT-TIMESTAMP:" + ((Integer) timestamp.get(uID).get(ContactsContract.Contacts.CONTACT_LAST_UPDATED_TIMESTAMP)).toString();
+        vcard.appendLine("X-KDECONNECT-TIMESTAMP",
+                ((Integer) timestamp.get(uID).get(ContactsContract.Contacts.CONTACT_LAST_UPDATED_TIMESTAMP)).toString());
 
-        newVCard.append(vcardBody) // Body already has a trailing newline
-                .append(uIDLine).append('\n')
-                .append(timestampLine).append('\n')
-                .append("END:VCARD");
-
-        return newVCard.toString();
+        return vcard;
     }
 
     /**
@@ -227,7 +220,7 @@ public class ContactsPlugin extends Plugin {
             uIDs.add(Long.parseLong(uID));
         }
 
-        Map<Long, String> uIDsToVCards = ContactsHelper.getVCardsForContactIDs(context, uIDs);
+        Map<Long, VCardBuilder> uIDsToVCards = ContactsHelper.getVCardsForContactIDs(context, uIDs);
 
         // ContactsHelper.getVCardsForContactIDs(..) is allowed to reply without
         // some of the requested uIDs if they were not in the database, so update our list
@@ -237,14 +230,14 @@ public class ContactsPlugin extends Plugin {
 
         // Add the vcards to the packet
         for (Long uID : uIDsToVCards.keySet()) {
-            String vcard = uIDsToVCards.get(uID);
+            VCardBuilder vcard = uIDsToVCards.get(uID);
 
             vcard = this.addVCardMetadata(vcard, uID);
 
             // Store this as a valid uID
             uIDsAsStrings.add(uID.toString());
-            // Add the uid : name pairing to the packet
-            reply.set(uID.toString(), vcard);
+            // Add the uid -> vcard pairing to the packet
+            reply.set(uID.toString(), vcard.toString());
         }
 
         // Add the valid uIDs to the packet

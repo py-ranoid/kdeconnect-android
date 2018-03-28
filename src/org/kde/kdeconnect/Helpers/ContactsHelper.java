@@ -197,8 +197,8 @@ public class ContactsHelper {
      * @return Mapping of raw contact IDs to corresponding VCard
      */
     @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
-    protected static Map<Long, String> getVCardsFast(Context context, Collection<Long> IDs, Map<Long, String> lookupKeys) {
-        Map<Long, String> toReturn = new HashMap<>();
+    protected static Map<Long, VCardBuilder> getVCardsFast(Context context, Collection<Long> IDs, Map<Long, String> lookupKeys) {
+        Map<Long, VCardBuilder> toReturn = new HashMap<>();
         StringBuilder keys = new StringBuilder();
 
         List<Long> orderedIDs = new ArrayList<>(IDs);
@@ -242,7 +242,7 @@ public class ContactsHelper {
         for (int index = 0; index < orderedIDs.size(); index++) {
             String vcard = vcards[index] + "END:VCARD";
             Long ID = orderedIDs.get(index);
-            toReturn.put(ID, vcard);
+            toReturn.put(ID, new VCardBuilder(vcard));
         }
 
         return toReturn;
@@ -258,8 +258,8 @@ public class ContactsHelper {
      * @param lookupKeys
      * @return
      */
-    protected static Map<Long, String> getVCardsSlow(Context context, Collection<Long> IDs, Map<Long, String> lookupKeys) {
-        Map<Long, String> toReturn = new HashMap<>();
+    protected static Map<Long, VCardBuilder> getVCardsSlow(Context context, Collection<Long> IDs, Map<Long, String> lookupKeys) {
+        Map<Long, VCardBuilder> toReturn = new HashMap<>();
 
         for (Long ID : lookupKeys.keySet()) {
             String lookupKey = lookupKeys.get(ID);
@@ -276,7 +276,7 @@ public class ContactsHelper {
                     vcard.append(line).append('\n');
                 }
 
-                toReturn.put(ID, vcard.toString());
+                toReturn.put(ID, new VCardBuilder(vcard.toString()));
             } catch (FileNotFoundException e) {
                 // If you are experiencing this, please open a bug report indicating how you got here
                 e.printStackTrace();
@@ -297,8 +297,8 @@ public class ContactsHelper {
      * @param IDs     collection of raw contact IDs to look up
      * @return Mapping of raw contact IDs to the corresponding VCard
      */
-    public static Map<Long, String> getVCardsForContactIDs(Context context, Collection<Long> IDs) {
-        Map<Long, String> toReturn = new HashMap<>();
+    public static Map<Long, VCardBuilder> getVCardsForContactIDs(Context context, Collection<Long> IDs) {
+        Map<Long, VCardBuilder> toReturn = new HashMap<>();
 
         // Get the contacts' lookup keys, since that is how VCard is looked up
         final String[] contactsProjection = new String[]{
@@ -554,5 +554,45 @@ public class ContactsHelper {
 
         return toReturn;
     }
-}
 
+    /**
+     * This is a cheap ripoff of com.android.vcard.VCardBuilder
+     * <p>
+     * Maybe in the future that library will be made public and we can switch to using that!
+     * <p>
+     * The main similarity is the usage of .toString() to produce the finalized VCard and the
+     * usage of .appendLine(String, String) to add stuff to the vcard
+     */
+    public static class VCardBuilder {
+        protected static final String VCARD_END = "END:VCARD"; // Written to terminate the vcard
+        protected static final String VCARD_DATA_SEPARATOR = ":";
+
+        StringBuilder vcardBody;
+
+        /**
+         * Take a partial vcard as a string and make a VCardBuilder
+         *
+         * @param vcard vcard to build upon
+         */
+        public VCardBuilder(String vcard) {
+            // Remove the end tag. We will add it back on in .toString()
+            vcard = vcard.substring(0, vcard.indexOf(VCARD_END));
+
+            vcardBody = new StringBuilder(vcard);
+        }
+
+        /**
+         * Appends one line with a given property name and value.
+         */
+        public void appendLine(final String propertyName, final String rawValue) {
+            vcardBody.append(propertyName)
+                    .append(VCARD_DATA_SEPARATOR)
+                    .append(rawValue)
+                    .append("\n");
+        }
+
+        public String toString() {
+            return vcardBody.toString() + VCARD_END;
+        }
+    }
+}
