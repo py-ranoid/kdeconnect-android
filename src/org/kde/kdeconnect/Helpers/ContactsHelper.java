@@ -233,29 +233,24 @@ public class ContactsHelper {
             e.printStackTrace();
         }
 
-        // WARNING -- UNDOCUMENTED BEHAVIOR USED AHEAD
-        // Android returns the vcards as a big flat string of vcards
-        // It **appears** that these vcards are in the same order as we requested them
-        // We are relying on this behavior to connect VCards to the unique IDs
+        // At this point we are screwed:
+        // There is no way to figure out, given the lookup we just made, which VCard belonges
+        // to which ID. They appear to be in the same order as the request was made, but this
+        // is (provably) unreliable. I am leaving this code in case it is useful, but unless
+        // Android improves their API there is nothing we can do with it
 
-        String[] vcards = vcardJumble.toString().split("END:VCARD");
-        for (int index = 0; index < orderedIDs.size(); index++) {
-            String vcard = vcards[index] + "END:VCARD";
-            Long ID = orderedIDs.get(index);
-            toReturn.put(ID, new VCardBuilder(vcard));
-        }
-
-        return toReturn;
+        return null;
     }
 
     /**
-     * Get VCards using serial database lookups. This is tragically slow, but at least supports old Android versions
-     * <p>
-     * Use getVCardsFast for API >= 21
+     * Get VCards using serial database lookups. This is tragically slow, but the faster method using
+     *
+     * There is a faster API specified using ContactsContract.Contacts.CONTENT_MULTI_VCARD_URI,
+     * but there does not seem to be a way to figure out which ID resulted in which VCard using that API
      *
      * @param context    android.content.Context running the request
      * @param IDs        collection of raw contact IDs to look up
-     * @param lookupKeys
+     * @param lookupKeys Contacts' ContactsContract.Contacts.LOOKUP_KEY fields to look up
      * @return
      */
     protected static Map<Long, VCardBuilder> getVCardsSlow(Context context, Collection<Long> IDs, Map<Long, String> lookupKeys) {
@@ -312,13 +307,7 @@ public class ContactsHelper {
             Map<String, Object> returnedColumns = lookupKeysMap.get(ID);
             lookupKeys.put(ID, (String) returnedColumns.get(ContactsContract.Contacts.LOOKUP_KEY));
         }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            return getVCardsFast(context, IDs, lookupKeys);
-        } else {
-            return getVCardsSlow(context, IDs, lookupKeys);
-        }
-
+        return getVCardsSlow(context, IDs, lookupKeys);
     }
 
     /**
