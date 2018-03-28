@@ -33,8 +33,6 @@ import android.util.Base64;
 import android.util.Base64OutputStream;
 import android.util.Log;
 
-import org.json.JSONArray;
-
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
@@ -193,8 +191,8 @@ public class ContactsHelper {
     /**
      * Get VCards using the batch database query which requires Android API 21
      *
-     * @param context android.content.Context running the request
-     * @param IDs   collection of raw contact IDs to look up
+     * @param context    android.content.Context running the request
+     * @param IDs        collection of raw contact IDs to look up
      * @param lookupKeys
      * @return Mapping of raw contact IDs to corresponding VCard
      */
@@ -241,7 +239,7 @@ public class ContactsHelper {
         // We are relying on this behavior to connect VCards to the unique IDs
 
         String[] vcards = vcardJumble.toString().split("END:VCARD");
-        for (int index = 0; index < orderedIDs.size(); index ++) {
+        for (int index = 0; index < orderedIDs.size(); index++) {
             String vcard = vcards[index] + "END:VCARD";
             Long ID = orderedIDs.get(index);
             toReturn.put(ID, vcard);
@@ -252,18 +250,18 @@ public class ContactsHelper {
 
     /**
      * Get VCards using serial database lookups. This is tragically slow, but at least supports old Android versions
-     *
+     * <p>
      * Use getVCardsFast for API >= 21
      *
-     * @param context android.content.Context running the request
-     * @param IDs   collection of raw contact IDs to look up
+     * @param context    android.content.Context running the request
+     * @param IDs        collection of raw contact IDs to look up
      * @param lookupKeys
      * @return
      */
     protected static Map<Long, String> getVCardsSlow(Context context, Collection<Long> IDs, Map<Long, String> lookupKeys) {
         Map<Long, String> toReturn = new HashMap<>();
 
-        for ( Long ID : lookupKeys.keySet() ) {
+        for (Long ID : lookupKeys.keySet()) {
             String lookupKey = lookupKeys.get(ID);
             Uri vcardURI = Uri.withAppendedPath(ContactsContract.Contacts.CONTENT_VCARD_URI, lookupKey);
             InputStream input;
@@ -296,7 +294,7 @@ public class ContactsHelper {
      * Get the VCard for every specified raw contact ID
      *
      * @param context android.content.Context running the request
-     * @param IDs   collection of raw contact IDs to look up
+     * @param IDs     collection of raw contact IDs to look up
      * @return Mapping of raw contact IDs to the corresponding VCard
      */
     public static Map<Long, String> getVCardsForContactIDs(Context context, Collection<Long> IDs) {
