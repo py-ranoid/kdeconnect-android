@@ -79,8 +79,6 @@ public class ContactsPlugin extends Plugin {
      */
     public static final String PACKET_TYPE_CONTACTS_RESPONSE_VCARDS = "kdeconnect.contacts.response_vcards";
 
-    private int contactsPermissionExplanation = R.string.contacts_permission_explanation;
-
     @Override
     public String getDisplayName() {
         return context.getResources().getString(R.string.pref_plugin_contacts);
@@ -109,7 +107,7 @@ public class ContactsPlugin extends Plugin {
 
     @Override
     public boolean onCreate() {
-        permissionExplanation = contactsPermissionExplanation;
+        permissionExplanation = R.string.contacts_permission_explanation;
 
         return true;
     }
