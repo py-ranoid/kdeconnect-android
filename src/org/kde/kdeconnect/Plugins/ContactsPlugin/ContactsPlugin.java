@@ -31,6 +31,7 @@ import android.util.Log;
 
 import org.kde.kdeconnect.Helpers.ContactsHelper;
 import org.kde.kdeconnect.Helpers.ContactsHelper.VCardBuilder;
+import org.kde.kdeconnect.Helpers.ContactsHelper.uID;
 import org.kde.kdeconnect.NetworkPacket;
 import org.kde.kdeconnect.Plugins.Plugin;
 import org.kde.kdeconnect_tp.R;
@@ -114,9 +115,6 @@ public class ContactsPlugin extends Plugin {
     }
 
     @Override
-    /**
-     * Since this plugin could leak sensitive information, probably best to leave disabled by default
-     */
     public boolean isEnabledByDefault() {
         return true;
     }
@@ -144,7 +142,7 @@ public class ContactsPlugin extends Plugin {
      * @param uID   uID to which the vcard corresponds
      * @return
      */
-    protected VCardBuilder addVCardMetadata(VCardBuilder vcard, Long uID) {
+    protected VCardBuilder addVCardMetadata(VCardBuilder vcard, uID uID) {
         // Append the device ID line
         // Unclear if the deviceID forms a valid name per the vcard spec. Worry about that later..
         vcard.appendLine("X-KDECONNECT-ID-DEV-" + device.getDeviceId(),
@@ -152,14 +150,14 @@ public class ContactsPlugin extends Plugin {
 
         // Build the timestamp line
         // Maybe one day this should be changed into the vcard-standard REV key
-        List<Long> uIDs = new ArrayList<>();
+        List<uID> uIDs = new ArrayList<>();
         uIDs.add(uID);
 
         final String[] contactsProjection = new String[]{
                 ContactsContract.Contacts.CONTACT_LAST_UPDATED_TIMESTAMP
         };
 
-        Map<Long, Map<String, Object>> timestamp = ContactsHelper.getColumnsFromContactsForRawContactIDs(context, uIDs, contactsProjection);
+        Map<uID, Map<String, Object>> timestamp = ContactsHelper.getColumnsFromContactsForIDs(context, uIDs, contactsProjection);
         vcard.appendLine("X-KDECONNECT-TIMESTAMP",
                 ((Integer) timestamp.get(uID).get(ContactsContract.Contacts.CONTACT_LAST_UPDATED_TIMESTAMP)).toString());
 
@@ -167,7 +165,7 @@ public class ContactsPlugin extends Plugin {
     }
 
     /**
-     * Return a unique identifier (long int) for all contacts in the Contacts database
+     * Return a unique identifier (Contacts.LOOKUP_KEY) for all contacts in the Contacts database
      * <p>
      * The identifiers returned can be used in future requests to get more information
      * about the contact
@@ -178,13 +176,11 @@ public class ContactsPlugin extends Plugin {
     protected boolean handleRequestAllUIDsTimestamps(NetworkPacket np) {
         NetworkPacket reply = new NetworkPacket(PACKET_TYPE_CONTACTS_RESPONSE_UIDS_TIMESTAMPS);
 
-        List<Long> uIDs = ContactsHelper.getAllContactRawContactIDs(context);
-
-        ContactsHelper.getVCardsForContactIDs(context, uIDs);
+        List<uID> uIDs = ContactsHelper.getAllContactContactIDs(context);
 
         List<String> uIDsAsStrings = new ArrayList<String>(uIDs.size());
 
-        for (Long uID : uIDs) {
+        for (uID uID : uIDs) {
             uIDsAsStrings.add(uID.toString());
         }
 
@@ -195,8 +191,8 @@ public class ContactsPlugin extends Plugin {
         reply.set("uids", uIDsAsStrings);
 
         // Add last-modified timestamps
-        Map<Long, Map<String, Object>> uIDsToTimestamps = ContactsHelper.getColumnsFromContactsForRawContactIDs(context, uIDs, contactsProjection);
-        for (Long ID : uIDsToTimestamps.keySet()) {
+        Map<uID, Map<String, Object>> uIDsToTimestamps = ContactsHelper.getColumnsFromContactsForIDs(context, uIDs, contactsProjection);
+        for (uID ID : uIDsToTimestamps.keySet()) {
             Map<String, Object> data = uIDsToTimestamps.get(ID);
             reply.set(ID.toString(), (Integer) data.get(ContactsContract.Contacts.CONTACT_LAST_UPDATED_TIMESTAMP));
         }
@@ -214,13 +210,13 @@ public class ContactsPlugin extends Plugin {
 
         List<String> uIDsAsStrings = np.getStringList("uids");
 
-        // Convert to Collection<Long> to call getVCardsForContactIDs
-        Set<Long> uIDs = new HashSet<Long>(uIDsAsStrings.size());
+        // Convert to Collection<uIDs> to call getVCardsForContactIDs
+        Set<uID> uIDs = new HashSet<>(uIDsAsStrings.size());
         for (String uID : uIDsAsStrings) {
-            uIDs.add(Long.parseLong(uID));
+            uIDs.add(new uID(uID));
         }
 
-        Map<Long, VCardBuilder> uIDsToVCards = ContactsHelper.getVCardsForContactIDs(context, uIDs);
+        Map<uID, VCardBuilder> uIDsToVCards = ContactsHelper.getVCardsForContactIDs(context, uIDs);
 
         // ContactsHelper.getVCardsForContactIDs(..) is allowed to reply without
         // some of the requested uIDs if they were not in the database, so update our list
@@ -229,7 +225,7 @@ public class ContactsPlugin extends Plugin {
         NetworkPacket reply = new NetworkPacket(PACKET_TYPE_CONTACTS_RESPONSE_VCARDS);
 
         // Add the vcards to the packet
-        for (Long uID : uIDsToVCards.keySet()) {
+        for (uID uID : uIDsToVCards.keySet()) {
             VCardBuilder vcard = uIDsToVCards.get(uID);
 
             vcard = this.addVCardMetadata(vcard, uID);
