@@ -342,10 +342,10 @@ public class ContactsHelper {
                 contactsArgs.toArray(new String[0]), null
         );
 
-        Map<String, Object> requestedData = new HashMap<>();
-
         if (contactsCursor != null && contactsCursor.moveToFirst()) {
             do {
+                Map<String, Object> requestedData = new HashMap<>();
+
                 int lookupKeyIdx = contactsCursor.getColumnIndexOrThrow(uID.COLUMN);
                 String lookupKey = contactsCursor.getString(lookupKeyIdx);
 
