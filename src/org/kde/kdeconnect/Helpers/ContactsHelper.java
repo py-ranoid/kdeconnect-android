@@ -227,9 +227,8 @@ public class ContactsHelper {
             while ((line = bufferedInput.readLine()) != null) {
                 vcardJumble.append(line).append('\n');
             }
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
         } catch (IOException e) {
+            // If you are experiencing this, please open a bug report indicating how you got here
             e.printStackTrace();
         }
 
@@ -271,11 +270,8 @@ public class ContactsHelper {
                 }
 
                 toReturn.put(ID, new VCardBuilder(vcard.toString()));
-            } catch (FileNotFoundException e) {
-                // If you are experiencing this, please open a bug report indicating how you got here
-                e.printStackTrace();
-                continue;
             } catch (IOException e) {
+                // If you are experiencing this, please open a bug report indicating how you got here
                 e.printStackTrace();
                 continue;
             }
