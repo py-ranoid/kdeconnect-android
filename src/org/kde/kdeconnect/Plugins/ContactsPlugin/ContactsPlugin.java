@@ -138,7 +138,7 @@ public class ContactsPlugin extends Plugin {
      *
      * @param vcard vcard to apply metadata to
      * @param uID   uID to which the vcard corresponds
-     * @return
+     * @return The same VCard as was passed in, but now with KDE Connect-specific fields
      */
     protected VCardBuilder addVCardMetadata(VCardBuilder vcard, uID uID) {
         // Append the device ID line
@@ -157,7 +157,7 @@ public class ContactsPlugin extends Plugin {
 
         Map<uID, Map<String, Object>> timestamp = ContactsHelper.getColumnsFromContactsForIDs(context, uIDs, contactsProjection);
         vcard.appendLine("X-KDECONNECT-TIMESTAMP",
-                ((Integer) timestamp.get(uID).get(ContactsContract.Contacts.CONTACT_LAST_UPDATED_TIMESTAMP)).toString());
+                timestamp.get(uID).get(ContactsContract.Contacts.CONTACT_LAST_UPDATED_TIMESTAMP).toString());
 
         return vcard;
     }
@@ -171,12 +171,13 @@ public class ContactsPlugin extends Plugin {
      * @param np The package containing the request
      * @return true if successfully handled, false otherwise
      */
-    protected boolean handleRequestAllUIDsTimestamps(NetworkPacket np) {
+    @SuppressWarnings("SameReturnValue")
+    protected boolean handleRequestAllUIDsTimestamps(@SuppressWarnings("unused") NetworkPacket np) {
         NetworkPacket reply = new NetworkPacket(PACKET_TYPE_CONTACTS_RESPONSE_UIDS_TIMESTAMPS);
 
         List<uID> uIDs = ContactsHelper.getAllContactContactIDs(context);
 
-        List<String> uIDsAsStrings = new ArrayList<String>(uIDs.size());
+        List<String> uIDsAsStrings = new ArrayList<>(uIDs.size());
 
         for (uID uID : uIDs) {
             uIDsAsStrings.add(uID.toString());
@@ -218,7 +219,7 @@ public class ContactsPlugin extends Plugin {
 
         // ContactsHelper.getVCardsForContactIDs(..) is allowed to reply without
         // some of the requested uIDs if they were not in the database, so update our list
-        uIDsAsStrings = new ArrayList<String>(uIDsToVCards.size());
+        uIDsAsStrings = new ArrayList<>(uIDsToVCards.size());
 
         NetworkPacket reply = new NetworkPacket(PACKET_TYPE_CONTACTS_RESPONSE_VCARDS);
 
@@ -244,13 +245,14 @@ public class ContactsPlugin extends Plugin {
 
     @Override
     public boolean onPacketReceived(NetworkPacket np) {
-        if (np.getType().equals(PACKET_TYPE_CONTACTS_REQUEST_ALL_UIDS_TIMESTAMPS)) {
-            return this.handleRequestAllUIDsTimestamps(np);
-        } else if (np.getType().equals(PACKET_TYPE_CONTACTS_REQUEST_VCARDS_BY_UIDS)) {
-            return this.handleRequestVCardsByUIDs(np);
-        } else {
-            Log.e("ContactsPlugin", "Contacts plugin received an unexpected packet!");
-            return false;
+        switch (np.getType()) {
+            case PACKET_TYPE_CONTACTS_REQUEST_ALL_UIDS_TIMESTAMPS:
+                return this.handleRequestAllUIDsTimestamps(np);
+            case PACKET_TYPE_CONTACTS_REQUEST_VCARDS_BY_UIDS:
+                return this.handleRequestVCardsByUIDs(np);
+            default:
+                Log.e("ContactsPlugin", "Contacts plugin received an unexpected packet!");
+                return false;
         }
     }
 }

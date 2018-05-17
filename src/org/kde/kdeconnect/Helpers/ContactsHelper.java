@@ -29,13 +29,13 @@ import android.os.Build;
 import android.provider.ContactsContract;
 import android.provider.ContactsContract.PhoneLookup;
 import android.support.annotation.RequiresApi;
+import android.support.v4.util.LongSparseArray;
 import android.util.Base64;
 import android.util.Base64OutputStream;
 import android.util.Log;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -62,7 +62,7 @@ public class ContactsHelper {
         Map<String, String> contactInfo = new HashMap<>();
 
         Uri uri = Uri.withAppendedPath(PhoneLookup.CONTENT_FILTER_URI, Uri.encode(number));
-        Cursor cursor = null;
+        Cursor cursor;
         try {
             cursor = context.getContentResolver().query(
                     uri,
@@ -92,7 +92,7 @@ public class ContactsHelper {
 
             try {
                 cursor.close();
-            } catch (Exception e) {
+            } catch (Exception ignored) {
             }
 
             if (!contactInfo.isEmpty()) {
@@ -117,6 +117,7 @@ public class ContactsHelper {
             input = context.getContentResolver().openInputStream(photoUri);
             byte[] buffer = new byte[1024];
             int len;
+            //noinspection ConstantConditions
             while ((len = input.read(buffer)) != -1) {
                 output.write(buffer, 0, len);
             }
@@ -126,11 +127,13 @@ public class ContactsHelper {
             return "";
         } finally {
             try {
+                //noinspection ConstantConditions
                 input.close();
             } catch (Exception ignored) {
             }
 
             try {
+                //noinspection ConstantConditions
                 output.close();
             } catch (Exception ignored) {
             }
@@ -181,7 +184,7 @@ public class ContactsHelper {
             } while (contactsCursor.moveToNext());
             try {
                 contactsCursor.close();
-            } catch (Exception e) {
+            } catch (Exception ignored) {
             }
         }
 
@@ -196,9 +199,11 @@ public class ContactsHelper {
      * @param lookupKeys
      * @return Mapping of raw contact IDs to corresponding VCard
      */
+    @SuppressWarnings("ALL") // Since this method is busted anyway
     @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
+    @Deprecated
     protected static Map<Long, VCardBuilder> getVCardsFast(Context context, Collection<Long> IDs, Map<Long, String> lookupKeys) {
-        Map<Long, VCardBuilder> toReturn = new HashMap<>();
+        LongSparseArray<VCardBuilder> toReturn = new LongSparseArray<>();
         StringBuilder keys = new StringBuilder();
 
         List<Long> orderedIDs = new ArrayList<>(IDs);
@@ -249,8 +254,9 @@ public class ContactsHelper {
      *
      * @param context    android.content.Context running the request
      * @param IDs        collection of uIDs to look up
-     * @return
+     * @return Mapping of uIDs to the corresponding VCard
      */
+    @SuppressWarnings("UnnecessaryContinue")
     protected static Map<uID, VCardBuilder> getVCardsSlow(Context context, Collection<uID> IDs) {
         Map<uID, VCardBuilder> toReturn = new HashMap<>();
 
@@ -261,6 +267,11 @@ public class ContactsHelper {
             try {
                 input = context.getContentResolver().openInputStream(vcardURI);
 
+                if (input == null)
+                {
+                    throw new NullPointerException("ContentResolver did not give us a stream for the VCard for uID " + uID);
+                }
+
                 BufferedReader bufferedInput = new BufferedReader(new InputStreamReader(input));
 
                 StringBuilder vcard = new StringBuilder();
@@ -270,10 +281,15 @@ public class ContactsHelper {
                 }
 
                 toReturn.put(ID, new VCardBuilder(vcard.toString()));
+                input.close();
             } catch (IOException e) {
                 // If you are experiencing this, please open a bug report indicating how you got here
                 e.printStackTrace();
                 continue;
+            } catch (NullPointerException e)
+            {
+                // If you are experiencing this, please open a bug report indicating how you got here
+                e.printStackTrace();
             }
         }
 
@@ -288,8 +304,6 @@ public class ContactsHelper {
      * @return Mapping of raw contact IDs to the corresponding VCard
      */
     public static Map<uID, VCardBuilder> getVCardsForContactIDs(Context context, Collection<uID> IDs) {
-        Map<uID, VCardBuilder> toReturn = new HashMap<>();
-
         return getVCardsSlow(context, IDs);
     }
 
@@ -384,7 +398,7 @@ public class ContactsHelper {
             } while (contactsCursor.moveToNext());
             try {
                 contactsCursor.close();
-            } catch (Exception e) {
+            } catch (Exception ignored) {
             }
         }
 
@@ -403,7 +417,7 @@ public class ContactsHelper {
         protected static final String VCARD_END = "END:VCARD"; // Written to terminate the vcard
         protected static final String VCARD_DATA_SEPARATOR = ":";
 
-        StringBuilder vcardBody;
+        final StringBuilder vcardBody;
 
         /**
          * Take a partial vcard as a string and make a VCardBuilder
@@ -440,7 +454,7 @@ public class ContactsHelper {
          * We use the LOOKUP_KEY column of the Contacts table as a unique ID, since that's what it's
          * for
          */
-        String contactLookupKey;
+        final String contactLookupKey;
 
         /**
          * Which Contacts column this uID is pulled from
