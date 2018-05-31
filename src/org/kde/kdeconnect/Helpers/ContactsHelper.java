@@ -269,7 +269,7 @@ public class ContactsHelper {
 
                 if (input == null)
                 {
-                    throw new NullPointerException("ContentResolver did not give us a stream for the VCard for uID " + uID);
+                    throw new NullPointerException("ContentResolver did not give us a stream for the VCard for uID " + ID);
                 }
 
                 BufferedReader bufferedInput = new BufferedReader(new InputStreamReader(input));
