@@ -568,6 +568,7 @@ public class Device implements BaseLink.PacketReceiver {
 
             //If capabilities are not supported, iterate all plugins
             Collection<String> targetPlugins = pluginsByIncomingInterface.get(np.getType());
+            Log.i("PairingPacketReceived", "Type :"+np.getType());
             if (targetPlugins != null && !targetPlugins.isEmpty()) {
                 for (String pluginKey : targetPlugins) {
                     Plugin plugin = plugins.get(pluginKey);

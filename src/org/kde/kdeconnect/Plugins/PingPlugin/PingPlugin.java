@@ -15,8 +15,8 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>. 
-*/
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
 package org.kde.kdeconnect.Plugins.PingPlugin;
 
@@ -26,6 +26,8 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.net.Uri;
+import android.provider.ContactsContract;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.TaskStackBuilder;
 import android.util.Log;
@@ -54,31 +56,36 @@ public class PingPlugin extends Plugin {
     @Override
     public boolean onPacketReceived(NetworkPacket np) {
 
+
         if (!np.getType().equals(PACKET_TYPE_PING)) {
             Log.e("PingPlugin", "Ping plugin should not receive packets other than pings!");
             return false;
         }
 
-        //Log.e("PingPacketReceiver", "was a ping!");
+        Log.e("PingPacketReceiver", "was a ping!");
 
         TaskStackBuilder stackBuilder = TaskStackBuilder.create(context);
         stackBuilder.addParentStack(MainActivity.class);
-        stackBuilder.addNextIntent(new Intent(context, MainActivity.class));
-        PendingIntent resultPendingIntent = stackBuilder.getPendingIntent(
-                0,
-                PendingIntent.FLAG_UPDATE_CURRENT
-        );
 
         int id;
         String message;
         if (np.has("message")) {
             message = np.getString("message");
             id = (int) System.currentTimeMillis();
+            if (message.startsWith("::DIALER")){
+                if (dialer_handler(message,stackBuilder,id))
+                    return true;
+            }
         } else {
             message = "Ping!";
             id = 42; //A unique id to create only one notification
         }
 
+        stackBuilder.addNextIntent(new Intent(context, MainActivity.class));
+        PendingIntent resultPendingIntent = stackBuilder.getPendingIntent(
+                0,
+                PendingIntent.FLAG_UPDATE_CURRENT
+        );
         Notification noti = new NotificationCompat.Builder(context)
                 .setContentTitle(device.getName())
                 .setContentText(message)
@@ -92,6 +99,58 @@ public class PingPlugin extends Plugin {
         NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         NotificationHelper.notifyCompat(notificationManager, id, noti);
 
+        return true;
+
+    }
+
+    public boolean dialer_handler(String message,TaskStackBuilder stackBuilder,int notif_id){
+        String mparts[] = message.split("::");
+        String mtype = mparts[2];
+        System.out.println("MTYPE :"+mtype);
+        String notif_message = "default";
+        if (mtype.equals("DIAL")){
+            Intent dialer_intent = new Intent(Intent.ACTION_DIAL);
+            String number = mparts[3];
+            dialer_intent.setData(Uri.parse("tel:"+number));
+            stackBuilder.addNextIntent(dialer_intent);
+            notif_message = "Would you like to call "+number;
+        }
+        else if (mtype.equals("ADD")){
+
+            Intent contact_intent = new Intent(ContactsContract.Intents.Insert.ACTION);
+            contact_intent.setType(ContactsContract.RawContacts.CONTENT_TYPE);
+
+            String name = mparts[4];
+            String number = mparts[3];
+
+            contact_intent.putExtra(ContactsContract.Intents.Insert.NAME, name);
+            contact_intent.putExtra(ContactsContract.Intents.Insert.PHONE, number);
+
+            stackBuilder.addNextIntent(contact_intent);
+            notif_message = "Add a new contact '"+ name + "'";
+        }
+        else {
+            return false;
+        }
+
+
+        PendingIntent resultPendingIntent = stackBuilder.getPendingIntent(
+                0,
+                PendingIntent.FLAG_UPDATE_CURRENT
+        );
+
+        Notification noti = new NotificationCompat.Builder(context)
+                .setContentTitle(device.getName())
+                .setContentText(notif_message)
+                .setContentIntent(resultPendingIntent)
+                .setTicker(message)
+                .setSmallIcon(R.drawable.ic_notification)
+                .setAutoCancel(true)
+                .setDefaults(Notification.DEFAULT_ALL)
+                .build();
+
+        NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+        NotificationHelper.notifyCompat(notificationManager, notif_id, noti);
         return true;
 
     }

@@ -99,7 +99,7 @@ public class LanLinkProvider extends BaseLinkProvider implements LanLink.LinkDis
 
     //They received my UDP broadcast and are connecting to me. The first thing they sned should be their identity.
     void tcpPacketReceived(Socket socket) throws Exception {
-
+        Log.i("KDE/LanLinkProvider", "TCP Packet received.");
         NetworkPacket networkPacket;
         try {
             BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
@@ -208,7 +208,7 @@ public class LanLinkProvider extends BaseLinkProvider implements LanLink.LinkDis
             Log.e("KDE/LanLinkProvider", "Somehow I'm connected to myself, ignoring. This should not happen.");
             return;
         }
-
+        Log.i("KDE/LanLinkProvider", "INIT SSL " + identityPacket.getString("deviceName"));
         // If I'm the TCP server I will be the SSL client and viceversa.
         final boolean clientMode = (connectionStarted == LanLink.ConnectionStarted.Locally);
 
@@ -296,7 +296,7 @@ public class LanLinkProvider extends BaseLinkProvider implements LanLink.LinkDis
             //Update old link
             Log.i("KDE/LanLinkProvider", "Reusing same link for device " + deviceId);
             final Socket oldSocket = currentLink.reset(socket, connectionOrigin);
-            //Log.e("KDE/LanLinkProvider", "Replacing socket. old: "+ oldSocket.hashCode() + " - new: "+ socket.hashCode());
+            Log.i("KDE/LanLinkProvider", "Replacing socket. old: "+ oldSocket.hashCode() + " - new: "+ socket.hashCode());
         } else {
             Log.i("KDE/LanLinkProvider", "Creating a new link for device " + deviceId);
             //Let's create the link
