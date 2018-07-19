@@ -150,6 +150,7 @@ public class SharePlugin extends Plugin {
 
         if (openUrlsDirectly) {
             context.startActivity(browserIntent);
+            Log.i("SharePlugin", "Opening Directly: " + url);
         } else {
             Resources res = context.getResources();
             TaskStackBuilder stackBuilder = TaskStackBuilder.create(context);
@@ -158,6 +159,7 @@ public class SharePlugin extends Plugin {
                     0,
                     PendingIntent.FLAG_UPDATE_CURRENT
             );
+            Log.i("SharePlugin", "Opening Notification: " + url);
 
             Notification noti = new NotificationCompat.Builder(context)
                     .setContentTitle(res.getString(R.string.received_url_title, device.getName()))
