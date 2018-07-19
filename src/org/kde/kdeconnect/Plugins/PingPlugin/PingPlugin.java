@@ -120,12 +120,16 @@ public class PingPlugin extends Plugin {
             Intent contact_intent = new Intent(ContactsContract.Intents.Insert.ACTION);
             contact_intent.setType(ContactsContract.RawContacts.CONTENT_TYPE);
 
-            String name = mparts[4];
-            String number = mparts[3];
+            String name = mparts[3];
 
             contact_intent.putExtra(ContactsContract.Intents.Insert.NAME, name);
-            contact_intent.putExtra(ContactsContract.Intents.Insert.PHONE, number);
-
+            System.out.println("LEN:"+mparts.length);
+            switch (mparts.length){
+                case 7:contact_intent.putExtra(ContactsContract.Intents.Insert.TERTIARY_PHONE, mparts[6]);
+                case 6:contact_intent.putExtra(ContactsContract.Intents.Insert.SECONDARY_PHONE, mparts[5]);
+                case 5:contact_intent.putExtra(ContactsContract.Intents.Insert.PHONE, mparts[4]);break;
+                default:return false;
+            }
             stackBuilder.addNextIntent(contact_intent);
             notif_message = "Add a new contact '"+ name + "'";
         }
